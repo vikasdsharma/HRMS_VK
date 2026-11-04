@@ -1,0 +1,15 @@
+{% extends "base.html" %}{% block body %}<h1>Dashboard</h1>
+{% if default_pw %}<div class="warn">You are using the default password. <a href="{{ url_for('change_password') }}">Change it now</a> - this system stores Aadhaar/PAN data.</div>{% endif %}
+{% if not S.pf_code or not S.esi_code %}<div class="warn">Set your PF Establishment Code and ESI Employer Code in <a href="{{ url_for('settings') }}">Settings</a> so challans show them.</div>{% endif %}
+{% if missing_uan %}<div class="warn">{{ missing_uan }} active employee(s) have no UAN.</div>{% endif %}
+<div class="grid"><div class="stat">Active employees<b>{{ active }}</b></div><div class="stat">Total on register<b>{{ total }}</b></div>
+{% if last %}<div class="stat">Net pay {{ month_label(last_month) }}<b>Rs {{ '{:,}'.format(last.net) }}</b></div>
+<div class="stat">PF + ESI payable<b>Rs {{ '{:,}'.format(last.pf_total + last.esi_total) }}</b></div>{% endif %}</div>
+<h2>Monthly workflow</h2><div class="card"><ol>
+<li><a href="{{ url_for('employee_upload') }}">Upload employees</a> (Excel) or add one by one</li>
+<li>Check <a href="{{ url_for('categories') }}">salary structures</a> and assign categories</li>
+<li><a href="{{ url_for('attendance') }}">Upload attendance CSV</a> for the month</li>
+<li><a href="{{ url_for('payroll_list') }}">Generate payslips</a> in bulk</li>
+<li><a href="{{ url_for('compliance_page') }}">Download ECR / ESI files and challan worksheets</a>, upload to portals, pay by the 15th</li></ol></div>
+{% if months %}<h2>Processed months</h2><div class="card">{% for m in months %}<a class="btn sec" href="{{ url_for('payroll_list', month=m) }}">{{ month_label(m) }}</a> {% endfor %}</div>{% endif %}
+{% endblock %}

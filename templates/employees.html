@@ -1,0 +1,33 @@
+{% extends "base.html" %}{% block body %}
+<h1>Employees <small class="muted">({{ emps|length }})</small></h1>
+<div class="row">
+  <form class="row" method="get" style="margin:0">
+    <input name="q" value="{{ q }}" placeholder="Search name, code, Aadhaar, UAN, PAN, mobile" style="width:340px">
+    <select name="status" style="width:120px">
+      {% for s in ['Active','Left','All'] %}<option value="{{ s }}" {{ 'selected' if status==s }}>{{ s }}</option>{% endfor %}
+    </select>
+    <button class="btn sec">Search</button>
+  </form>
+  <a class="btn" href="{{ url_for('employee_form') }}">+ Add employee</a>
+  <a class="btn" href="{{ url_for('employee_upload') }}">Excel upload</a>
+  <a class="btn sec" href="{{ url_for('employee_export') }}">Export</a>
+</div>
+<form method="post" action="{{ url_for('bulk_assign') }}">
+<div class="scroll"><table>
+<tr><th></th><th>Code</th><th>Name</th><th>Category</th><th>Aadhaar</th><th>UAN</th><th>ESIC</th><th>Mobile</th><th>Status</th><th></th></tr>
+{% for e in emps %}
+<tr><td><input type="checkbox" name="emp_ids" value="{{ e.id }}" style="width:auto"></td>
+<td>{{ e.emp_code }}</td><td>{{ e.name }}</td><td>{{ e.category.name if e.category else '-' }}</td>
+<td>{{ ('XXXX XXXX ' ~ e.aadhaar[-4:]) if e.aadhaar else '-' }}</td><td>{{ e.uan or '-' }}</td>
+<td>{{ e.esic_no or '-' }}</td><td>{{ e.mobile or '-' }}</td>
+<td><span class="tag {{ 'left' if e.status=='Left' }}">{{ e.status }}</span></td>
+<td><a href="{{ url_for('employee_form', eid=e.id) }}">Edit</a></td></tr>
+{% else %}<tr><td colspan="10" class="muted">No employees found.</td></tr>{% endfor %}
+</table></div>
+{% if emps %}
+<div class="row" style="margin-top:10px"><span>Assign selected to:</span>
+<select name="category_id" style="width:200px">{% for c in cats_all %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}</select>
+<button class="btn sec">Assign category</button></div>
+{% endif %}
+</form>
+{% endblock %}

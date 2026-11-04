@@ -1,0 +1,20 @@
+*{box-sizing:border-box}body{font:14px/1.45 Segoe UI,Arial,sans-serif;margin:0;background:#f4f6f9;color:#222}
+nav{background:#1f3a5f;padding:0 16px;display:flex;flex-wrap:wrap;align-items:center}
+nav a{color:#dbe6f5;padding:12px 14px;text-decoration:none}nav a:hover{background:#2d527f}nav .brand{font-weight:700;color:#fff}nav .sp{flex:1}
+main{max-width:1180px;margin:20px auto;padding:0 16px}
+h1{font-size:22px;margin:0 0 14px}h2{font-size:17px;margin:20px 0 8px}
+.card{background:#fff;border:1px solid #dde2ea;border-radius:6px;padding:16px;margin-bottom:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.stat{background:#fff;border:1px solid #dde2ea;border-radius:6px;padding:14px}.stat b{display:block;font-size:24px;color:#1f3a5f}
+table{border-collapse:collapse;width:100%;background:#fff}th,td{border:1px solid #dde2ea;padding:6px 8px;text-align:left}
+th{background:#eaf0f8}td.n,th.n{text-align:right}.scroll{overflow-x:auto}
+input,select,textarea{padding:6px 8px;border:1px solid #b9c2d0;border-radius:4px;font:inherit;width:100%}
+label{display:block;font-weight:600;font-size:12px;color:#445;margin-bottom:3px}
+.form{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.btn{display:inline-block;background:#1f3a5f;color:#fff;border:0;padding:8px 14px;border-radius:4px;cursor:pointer;text-decoration:none;font:inherit}
+.btn:hover{background:#2d527f}.btn.sec{background:#fff;color:#1f3a5f;border:1px solid #1f3a5f}.btn.red{background:#b3261e}
+.flash{padding:9px 12px;border-radius:4px;margin-bottom:8px}.flash.ok{background:#e3f4e5;border:1px solid #9bd3a1}
+.flash.err{background:#fde8e6;border:1px solid #f0a8a2}.warn{background:#fff6dd;border:1px solid #ecd27a;padding:9px 12px;border-radius:4px;margin-bottom:12px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:end;margin-bottom:12px}.row>*{width:auto}
+.muted{color:#778}.tag{padding:1px 7px;border-radius:10px;background:#e8eef6;font-size:12px}.tag.left{background:#fde8e6}
+small.hint{color:#778;font-weight:400}

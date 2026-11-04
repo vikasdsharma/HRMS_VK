@@ -1,0 +1,19 @@
+{% extends "base.html" %}{% block body %}
+<h1>Payroll - {{ month_label(month) }}</h1>
+<div class="card row">
+<form method="get" class="row" style="margin:0"><div><label>Month</label><input type="month" name="month" value="{{ month }}"></div><button class="btn sec">View</button></form>
+<form method="post" action="{{ url_for('payroll_generate') }}" style="margin:0"><input type="hidden" name="month" value="{{ month }}">
+<button class="btn" {{ 'disabled' if not att_count }}>Generate / re-generate payslips ({{ att_count }} with attendance)</button></form>
+{% if slips %}<a class="btn sec" href="{{ url_for('payslips_bulk_pdf', month=month) }}">All payslips (1 PDF)</a>
+<a class="btn sec" href="{{ url_for('payslips_zip', month=month) }}">Individual PDFs (ZIP)</a>
+<a class="btn sec" href="{{ url_for('salary_register', month=month) }}">Salary register (Excel)</a>{% endif %}
+</div>
+{% for w in warnings %}<div class="warn">{{ w }}</div>{% endfor %}
+{% if T %}<div class="grid" style="margin-bottom:14px"><div class="stat">Payslips<b>{{ T.slips }}</b></div><div class="stat">Total gross<b>{{ '{:,}'.format(T.gross) }}</b></div>
+<div class="stat">Total net pay<b>{{ '{:,}'.format(T.net) }}</b></div></div>{% endif %}
+<div class="scroll"><table><tr><th>Code</th><th>Name</th><th>Category</th><th class="n">Paid days</th><th class="n">Gross</th><th class="n">PF</th><th class="n">ESI</th><th class="n">Ded.</th><th class="n">Net</th><th></th></tr>
+{% for s in slips %}<tr><td>{{ s.employee.emp_code }}</td><td>{{ s.employee.name }}</td><td>{{ s.category_name }}</td><td class="n">{{ '%g' % s.paid_days }}</td>
+<td class="n">{{ s.gross }}</td><td class="n">{{ s.pf_ee }}</td><td class="n">{{ s.esi_ee }}</td><td class="n">{{ s.total_deduction|round(0)|int }}</td><td class="n"><b>{{ s.net }}</b></td>
+<td><a href="{{ url_for('payslip_pdf', sid=s.id) }}">PDF</a></td></tr>
+{% else %}<tr><td colspan="10" class="muted">No payslips yet. Upload attendance, then generate.</td></tr>{% endfor %}</table></div>
+{% endblock %}

@@ -1,0 +1,18 @@
+{% extends "base.html" %}{% block body %}
+<h1>{{ 'Edit' if cat and cat.id else 'New' }} salary category</h1>
+<form method="post" class="card">
+<div class="form">
+  <div><label>Name *</label><input name="name" value="{{ cat.name if cat else '' }}" required></div>
+  <div><label>Description</label><input name="description" value="{{ (cat.description or '') if cat else '' }}"></div>
+  <div><label>Basic per day (Rs)</label><input name="basic_day" type="number" step="0.01" min="0" value="{{ cat.basic_day if cat else 0 }}"></div>
+  <div><label>Dearness allowance per day</label><input name="da_day" type="number" step="0.01" min="0" value="{{ cat.da_day if cat else 0 }}"></div>
+  <div><label>HRA per day</label><input name="hra_day" type="number" step="0.01" min="0" value="{{ cat.hra_day if cat else 0 }}"></div>
+  <div><label>Other allowance per day</label><input name="other_day" type="number" step="0.01" min="0" value="{{ cat.other_day if cat else 0 }}"></div>
+  <div><label>Overtime multiplier <small class="hint">2 = double rate</small></label><input name="ot_multiplier" type="number" step="0.1" min="1" value="{{ cat.ot_multiplier if cat else 2 }}"></div>
+</div>
+<p><label style="display:inline"><input type="checkbox" name="pf_applicable" style="width:auto" {{ 'checked' if not cat or cat.pf_applicable }}> PF applicable</label> &nbsp;
+<label style="display:inline"><input type="checkbox" name="pf_ceiling" style="width:auto" {{ 'checked' if not cat or cat.pf_ceiling }}> Limit PF wages to ceiling (Rs {{ S.pf_wage_ceiling }})</label> &nbsp;
+<label style="display:inline"><input type="checkbox" name="esi_applicable" style="width:auto" {{ 'checked' if not cat or cat.esi_applicable }}> ESI applicable (if gross &le; Rs {{ S.esi_wage_ceiling }})</label></p>
+<p><button class="btn">Save</button> <a class="btn sec" href="{{ url_for('categories') }}">Cancel</a></p>
+</form>
+{% endblock %}

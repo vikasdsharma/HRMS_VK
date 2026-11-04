@@ -1,0 +1,20 @@
+{% extends "base.html" %}{% block body %}
+<h1>Settings</h1>
+<form method="post" class="card"><div class="form">
+  <div><label>Company name</label><input name="company_name" value="{{ S.company_name }}"></div>
+  <div><label>Address</label><input name="company_address" value="{{ S.company_address }}"></div>
+  <div><label>PF establishment code</label><input name="pf_code" value="{{ S.pf_code }}"></div>
+  <div><label>ESI employer code</label><input name="esi_code" value="{{ S.esi_code }}"></div>
+</div>
+<h2>Statutory rates (change only when law changes)</h2><div class="form">
+  <div><label>PF wage ceiling (Rs)</label><input name="pf_wage_ceiling" value="{{ S.pf_wage_ceiling }}"></div>
+  <div><label>ESI wage ceiling (Rs)</label><input name="esi_wage_ceiling" value="{{ S.esi_wage_ceiling }}"></div>
+  <div><label>PF employee % </label><input name="pf_ee_rate" value="{{ S.pf_ee_rate }}"></div>
+  <div><label>EPS employer %</label><input name="eps_rate" value="{{ S.eps_rate }}"></div>
+  <div><label>EDLI %</label><input name="edli_rate" value="{{ S.edli_rate }}"></div>
+  <div><label>PF admin charge %</label><input name="pf_admin_rate" value="{{ S.pf_admin_rate }}"></div>
+  <div><label>PF admin minimum (Rs)</label><input name="pf_admin_min" value="{{ S.pf_admin_min }}"></div>
+  <div><label>ESI employee %</label><input name="esi_ee_rate" value="{{ S.esi_ee_rate }}"></div>
+  <div><label>ESI employer %</label><input name="esi_er_rate" value="{{ S.esi_er_rate }}"></div>
+</div><p><button class="btn">Save</button></p></form>
+{% endblock %}

@@ -1,0 +1,17 @@
+{% extends "base.html" %}{% block body %}
+<h1>Bulk employee upload (Excel)</h1>
+<div class="card">
+<p>1. <a class="btn sec" href="{{ url_for('employee_template') }}">Download Excel template</a></p>
+<p>2. Fill one row per employee. <b>Salary Category</b> must match a name in the <i>Categories</i> sheet. Existing Employee Codes are <b>updated</b> (blank cells are left unchanged); new codes are created.</p>
+<p>3. Upload. If any row has an error, <b>nothing is saved</b> and each error is listed so you can fix and re-upload.</p>
+<form method="post" enctype="multipart/form-data" class="row"><input type="file" name="file" accept=".xlsx,.xlsm" required style="width:340px"><button class="btn">Upload</button></form>
+</div>
+{% if result %}
+  {% if result.errors %}
+    <div class="flash err"><b>Upload rejected - {{ result.errors|length }} row(s) with errors. No data was saved.</b></div>
+    <table><tr><th style="width:80px">Row</th><th>Problem</th></tr>{% for r, m in result.errors %}<tr><td>{{ r }}</td><td>{{ m }}</td></tr>{% endfor %}</table>
+  {% else %}
+    <div class="flash ok">Done: {{ result.created }} created, {{ result.updated }} updated.</div>
+  {% endif %}
+{% endif %}
+{% endblock %}

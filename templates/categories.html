@@ -1,0 +1,14 @@
+{% extends "base.html" %}{% block body %}
+<h1>Salary structures</h1>
+<p class="muted">All rates are per paid day. PF wages = Basic + DA. Set rates to at least the current Haryana minimum wage for the skill category.</p>
+<p><a class="btn" href="{{ url_for('category_form') }}">+ New category</a></p>
+<div class="scroll"><table>
+<tr><th>Name</th><th class="n">Basic/day</th><th class="n">DA/day</th><th class="n">HRA/day</th><th class="n">Other/day</th><th class="n">Total/day</th><th>OT x</th><th>PF</th><th>ESI</th><th>Employees</th><th></th></tr>
+{% for c in cats %}<tr><td>{{ c.name }}<br><small class="muted">{{ c.description or '' }}</small></td>
+<td class="n">{{ c.basic_day }}</td><td class="n">{{ c.da_day }}</td><td class="n">{{ c.hra_day }}</td><td class="n">{{ c.other_day }}</td>
+<td class="n"><b>{{ c.total_day|round(2) }}</b></td><td>{{ c.ot_multiplier }}</td>
+<td>{{ 'Yes' if c.pf_applicable else 'No' }}</td><td>{{ 'Yes' if c.esi_applicable else 'No' }}</td><td>{{ c.employees|length }}</td>
+<td><a href="{{ url_for('category_form', cid=c.id) }}">Edit</a>
+{% if not c.employees %}<form method="post" action="{{ url_for('category_delete', cid=c.id) }}" style="display:inline"><button class="btn red" style="padding:2px 8px">Delete</button></form>{% endif %}</td></tr>
+{% endfor %}</table></div>
+{% endblock %}

@@ -1,0 +1,19 @@
+{% extends "base.html" %}{% block body %}
+<h1>Monthly attendance</h1>
+<div class="card">
+<form method="get" class="row"><div><label>Month</label><input type="month" name="month" value="{{ month }}"></div><button class="btn sec">View</button>
+<a class="btn sec" href="{{ url_for('attendance_template', month=month) }}">Download CSV with all active employees</a></form>
+<p class="muted">CSV columns: <code>emp_code, present_days, paid_holidays, ot_hours, advance, other_deduction</code>. Employee codes must already exist. Re-uploading a month overwrites those employees' rows. Paid days = present + paid holidays (weekly offs).</p>
+<form method="post" enctype="multipart/form-data" class="row"><input type="hidden" name="month" value="{{ month }}">
+<input type="file" name="file" accept=".csv" required style="width:340px"><button class="btn">Upload for {{ month_label(month) }}</button></form>
+</div>
+{% if result %}{% if result.errors %}
+<div class="flash err"><b>Upload rejected - nothing saved.</b></div>
+<table><tr><th style="width:80px">Line</th><th>Problem</th></tr>{% for r, m in result.errors %}<tr><td>{{ r }}</td><td>{{ m }}</td></tr>{% endfor %}</table>
+{% else %}<div class="flash ok">Saved attendance for {{ result.saved }} employee(s).</div>{% endif %}{% endif %}
+<h2>{{ month_label(month) }} - {{ rows|length }} record(s)</h2>
+<div class="scroll"><table><tr><th>Code</th><th>Name</th><th class="n">Present</th><th class="n">Paid holidays</th><th class="n">OT hrs</th><th class="n">Advance</th><th class="n">Other ded.</th><th></th></tr>
+{% for a in rows %}<tr><td>{{ a.employee.emp_code }}</td><td>{{ a.employee.name }}</td><td class="n">{{ a.present_days }}</td><td class="n">{{ a.paid_holidays }}</td><td class="n">{{ a.ot_hours }}</td><td class="n">{{ a.advance }}</td><td class="n">{{ a.other_deduction }}</td>
+<td><form method="post" action="{{ url_for('attendance_delete', aid=a.id) }}"><button class="btn red" style="padding:2px 8px">Remove</button></form></td></tr>
+{% else %}<tr><td colspan="8" class="muted">No attendance uploaded for this month.</td></tr>{% endfor %}</table></div>
+{% endblock %}

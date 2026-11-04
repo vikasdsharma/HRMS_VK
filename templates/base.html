@@ -1,0 +1,9 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block title %}HRMS{% endblock %} - {{ S.company_name }}</title><link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"></head><body>
+{% if session.uid %}<nav><span class="brand">HRMS &nbsp;</span>
+<a href="{{ url_for('dashboard') }}">Dashboard</a><a href="{{ url_for('employees') }}">Employees</a>
+<a href="{{ url_for('categories') }}">Salary Structures</a><a href="{{ url_for('attendance') }}">Attendance</a>
+<a href="{{ url_for('payroll_list') }}">Payroll</a><a href="{{ url_for('compliance_page') }}">EPF / ESI</a>
+<span class="sp"></span><a href="{{ url_for('settings') }}">Settings</a><a href="{{ url_for('change_password') }}">Password</a><a href="{{ url_for('logout') }}">Logout</a></nav>{% endif %}
+<main>{% with m = get_flashed_messages(with_categories=true) %}{% for c, t in m %}<div class="flash {{ c }}">{{ t }}</div>{% endfor %}{% endwith %}
+{% block body %}{% endblock %}</main></body></html>

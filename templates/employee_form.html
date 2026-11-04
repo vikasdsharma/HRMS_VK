@@ -1,0 +1,31 @@
+{% extends "base.html" %}{% block body %}
+<h1>{{ 'Edit' if editing else 'Add' }} employee</h1>
+<form method="post" class="card">
+<div class="form">
+  <div><label>Employee Code *</label><input name="emp_code" value="{{ emp.emp_code or '' }}" required></div>
+  <div><label>Name *</label><input name="name" value="{{ emp.name or '' }}" required></div>
+  <div><label>Father / Husband name</label><input name="father_name" value="{{ emp.father_name or '' }}"></div>
+  <div><label>Gender</label><select name="gender">{% for g in ['', 'M', 'F', 'O'] %}<option {{ 'selected' if emp.gender==g }}>{{ g }}</option>{% endfor %}</select></div>
+  <div><label>Date of birth <small class="hint">DD-MM-YYYY</small></label><input name="dob" value="{{ emp.dob.strftime('%d-%m-%Y') if emp.dob and emp.dob.strftime else (emp.dob or '') }}"></div>
+  <div><label>Date of joining</label><input name="doj" value="{{ emp.doj.strftime('%d-%m-%Y') if emp.doj and emp.doj.strftime else (emp.doj or '') }}"></div>
+  <div><label>Designation</label><input name="designation" value="{{ emp.designation or '' }}"></div>
+  <div><label>Department</label><input name="department" value="{{ emp.department or '' }}"></div>
+  <div><label>Mobile</label><input name="mobile" value="{{ emp.mobile or '' }}"></div>
+  <div><label>Aadhaar <small class="hint">12 digits</small></label><input name="aadhaar" value="{{ emp.aadhaar or '' }}"></div>
+  <div><label>PAN</label><input name="pan" value="{{ emp.pan or '' }}"></div>
+  <div><label>UAN <small class="hint">12 digits</small></label><input name="uan" value="{{ emp.uan or '' }}"></div>
+  <div><label>ESIC IP number</label><input name="esic_no" value="{{ emp.esic_no or '' }}"></div>
+  <div><label>Bank name</label><input name="bank_name" value="{{ emp.bank_name or '' }}"></div>
+  <div><label>Bank account no.</label><input name="bank_acct" value="{{ emp.bank_acct or '' }}"></div>
+  <div><label>IFSC</label><input name="ifsc" value="{{ emp.ifsc or '' }}"></div>
+  <div><label>Salary category *</label><select name="category_id" required>
+    <option value="">-- select --</option>
+    {% for c in cats_all %}<option value="{{ c.id }}" {{ 'selected' if emp.category_id==c.id }}>{{ c.name }} (Rs {{ c.total_day|round(2) }}/day)</option>{% endfor %}
+  </select></div>
+  <div><label>Personal daily basic <small class="hint">optional, overrides category basic</small></label><input name="basic_override_day" value="{{ emp.basic_override_day or '' }}"></div>
+  <div><label>Status</label><select name="status"><option {{ 'selected' if emp.status!='Left' }}>Active</option><option {{ 'selected' if emp.status=='Left' }}>Left</option></select></div>
+</div>
+<div style="margin-top:12px"><label>Address</label><textarea name="address" rows="2">{{ emp.address or '' }}</textarea></div>
+<p><button class="btn">Save</button> <a class="btn sec" href="{{ url_for('employees') }}">Cancel</a></p>
+</form>
+{% endblock %}

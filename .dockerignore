@@ -1,0 +1,15 @@
+.git
+.venv
+.idea
+.claude
+__pycache__
+*.pyc
+.pytest_cache
+.ruff_cache
+data
+*.db
+*.db-wal
+*.db-shm
+.env
+.secret_key
+tests

@@ -1,0 +1,38 @@
+{# Shared UI pieces: {% from "_macros.html" import field, pager, sort_th, badge, csrf %} #}
+{% macro csrf() %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endmacro %}
+
+{% macro field(name, label, value='', errors=None, type='text', help='', required=False, attrs='', placeholder='') %}
+<div class="field{{ ' error' if errors and errors.get(name) }}">
+  <label for="f_{{ name }}">{{ label }}{% if required %} <span aria-hidden="true">*</span>{% endif %}{% if help %} <span class="hint">{{ help }}</span>{% endif %}</label>
+  <input id="f_{{ name }}" name="{{ name }}" type="{{ type }}" value="{{ value if value is not none else '' }}" {{ 'required' if required }}
+         {% if placeholder %}placeholder="{{ placeholder }}"{% endif %} {{ attrs|safe }}
+         {% if errors and errors.get(name) %}aria-invalid="true" aria-describedby="e_{{ name }}"{% endif %}>
+  {% if errors and errors.get(name) %}<div class="err" id="e_{{ name }}" role="alert">{{ errors[name] }}</div>{% endif %}
+</div>
+{% endmacro %}
+
+{% macro badge(text, kind='') %}<span class="badge {{ kind }}">{{ text }}</span>{% endmacro %}
+
+{# Sortable column header: keeps current filters (passes `args` dict) #}
+{% macro sort_th(label, col, sort, direction, endpoint, args={}, cls='') %}
+{% set nd = 'desc' if (sort == col and direction == 'asc') else 'asc' %}
+<th class="{{ cls }}" aria-sort="{{ ('ascending' if direction == 'asc' else 'descending') if sort == col else 'none' }}">
+  <a href="{{ url_for(endpoint, **dict(args, sort=col, dir=nd, page=1)) }}">{{ label }}{% if sort == col %} <span class="arrow">{{ '▲' if direction == 'asc' else '▼' }}</span>{% endif %}</a></th>
+{% endmacro %}
+
+{% macro pager(p, endpoint, args={}) %}
+{% if p.pages > 1 or p.total > 0 %}
+<nav class="pager" aria-label="Pagination">
+  <span>{{ p.total }} record{{ '' if p.total == 1 else 's' }}{% if p.pages > 1 %} &middot; page {{ p.page }} of {{ p.pages }}{% endif %}</span>
+  {% if p.pages > 1 %}<span class="row">
+    {% if p.page > 1 %}<a class="btn secondary sm" href="{{ url_for(endpoint, **dict(args, page=p.page - 1)) }}">&larr; Previous</a>{% endif %}
+    {% if p.page < p.pages %}<a class="btn secondary sm" href="{{ url_for(endpoint, **dict(args, page=p.page + 1)) }}">Next &rarr;</a>{% endif %}
+  </span>{% endif %}
+</nav>
+{% endif %}
+{% endmacro %}
+
+{% macro alerts(items, kind='warn', title='') %}
+{% if items %}<div class="alert {{ kind }}" role="status"><div>{% if title %}<b>{{ title }}</b>{% endif %}
+<ul>{% for i in items[:12] %}<li>{{ i }}</li>{% endfor %}{% if items|length > 12 %}<li>&hellip; and {{ items|length - 12 }} more</li>{% endif %}</ul></div></div>{% endif %}
+{% endmacro %}

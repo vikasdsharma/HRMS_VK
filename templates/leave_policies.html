@@ -1,0 +1,36 @@
+{% extends "base.html" %}{% block title %}Leave types &amp; policies{% endblock %}{% block body %}
+{% from "_macros.html" import csrf %}
+<div class="page-head"><div><h1>Leave types &amp; policies</h1><p>What kinds of leave exist, and how many days each group of employees gets. These are your company's rules, so set them to your policy and the law that applies to you.</p></div></div>
+
+<h2>Leave types</h2>
+{% for t in types %}<form id="tf{{ t.id }}" method="post" action="{{ url_for('leave_type_save') }}">{{ csrf() }}<input type="hidden" name="id" value="{{ t.id }}"></form>{% endfor %}
+<form id="tfnew" method="post" action="{{ url_for('leave_type_save') }}">{{ csrf() }}</form>
+<div class="tablewrap"><table><thead><tr><th>Code</th><th>Name</th><th>Paid</th><th>Has balance</th><th>Half day</th><th>Certificate after (days)</th><th>Encashable</th><th>Active</th><th></th></tr></thead><tbody>
+{% for t in types %}{% set f = 'tf' ~ t.id %}<tr>
+<td><code>{{ t.code }}</code></td><td><input form="{{ f }}" name="name" value="{{ t.name }}" required maxlength="60" aria-label="Name of {{ t.code }}"></td>
+<td><input form="{{ f }}" type="checkbox" name="paid" {{ 'checked' if t.paid }} aria-label="Paid"></td><td><input form="{{ f }}" type="checkbox" name="uses_balance" {{ 'checked' if t.uses_balance }} aria-label="Has balance"></td>
+<td><input form="{{ f }}" type="checkbox" name="half_day_ok" {{ 'checked' if t.half_day_ok }} aria-label="Half day allowed"></td>
+<td><input form="{{ f }}" name="doc_after_days" type="number" min="1" value="{{ t.doc_after_days or '' }}" style="width:90px" aria-label="Certificate after days"></td>
+<td><input form="{{ f }}" type="checkbox" name="encashable" {{ 'checked' if t.encashable }} aria-label="Encashable"></td><td><input form="{{ f }}" type="checkbox" name="active" {{ 'checked' if t.active }} aria-label="Active"></td>
+<td><button form="{{ f }}" class="btn secondary sm">Save</button></td></tr>{% endfor %}
+<tr><td><input form="tfnew" name="code" placeholder="ML" maxlength="6" style="width:70px" aria-label="New code"></td><td><input form="tfnew" name="name" placeholder="New leave type, e.g. Maternity Leave" maxlength="60" aria-label="New name"></td>
+<td><input form="tfnew" type="checkbox" name="paid" checked aria-label="Paid"></td><td><input form="tfnew" type="checkbox" name="uses_balance" checked aria-label="Has balance"></td><td><input form="tfnew" type="checkbox" name="half_day_ok" checked aria-label="Half day"></td>
+<td><input form="tfnew" name="doc_after_days" type="number" min="1" style="width:90px" aria-label="Certificate after days"></td><td><input form="tfnew" type="checkbox" name="encashable" aria-label="Encashable"></td><td><input form="tfnew" type="checkbox" name="active" checked aria-label="Active"></td>
+<td><button form="tfnew" class="btn sm">Add</button></td></tr>
+</tbody></table></div>
+<p class="muted" style="font-size:12.5px">"Has balance" off means unlimited unpaid-style leave (like Loss of Pay): it never needs credits. Unpaid types reduce paid days in payroll. Types are never deleted, only made inactive, so history stays intact.</p>
+
+<h2>Policies</h2>
+<p class="muted">A policy holds the rules (days per year, how they are credited, carry-forward, ceiling) for each leave type. A policy can be tied to one salary category; the <b>default</b> policy covers everyone else. Individual employees can still be given their own quota on their leave page.</p>
+<div class="tablewrap"><table><thead><tr><th>Policy</th><th>Applies to</th><th class="n">Rules</th><th></th></tr></thead><tbody>
+{% for p in policies %}<tr><td><b>{{ p.name }}</b></td><td>{% if p.is_default %}<span class="badge info">Default: everyone not covered below</span>{% elif p.category_id %}{{ (cats|selectattr('id', 'equalto', p.category_id)|first).name }}{% else %}-{% endif %}</td>
+<td class="n">{{ p.rules|length }}</td><td class="nowrap"><a class="btn secondary sm" href="{{ url_for('leave_policy_edit', pid=p.id) }}">Edit rules</a>
+{% if not p.is_default %}<form method="post" action="{{ url_for('leave_policy_delete', pid=p.id) }}" class="inline" data-confirm="Delete policy {{ p.name }}? Its employees will follow the default.">{{ csrf() }}<button class="btn danger sm">Delete</button></form>{% endif %}</td></tr>
+{% endfor %}</tbody></table></div>
+
+<div class="card" style="margin-top:14px"><h3>New policy for a salary category</h3>
+<form method="post" action="{{ url_for('leave_policy_new') }}" class="row">{{ csrf() }}
+  <div><label for="pn">Name</label><input id="pn" name="name" required maxlength="60" style="width:220px" placeholder="e.g. Skilled workers"></div>
+  <div><label for="pc">Salary category</label><select id="pc" name="category_id" style="width:220px"><option value="">(none: set as default later)</option>{% for c in cats %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}</select></div>
+  <button class="btn">Create from the default</button></form></div>
+{% endblock %}

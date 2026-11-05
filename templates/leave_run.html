@@ -1,0 +1,34 @@
+{% extends "base.html" %}{% block title %}Accrual &amp; year-end{% endblock %}{% block body %}
+{% from "_macros.html" import csrf, alerts %}
+<div class="page-head"><div><h1>Accrual &amp; year-end</h1><p>Credits are created by a job you control. Every run shows a preview first, is safe to repeat (it never credits twice), and is recorded in the audit log.</p></div></div>
+
+<div class="card"><h2 style="margin-top:0">1. Credit leave that is due</h2>
+  <p class="muted">Leave is managed from <b>{{ plan.go_live.strftime('%d %b %Y') }}</b>{% if not S.leave_start_date %} (fixed when you first run this){% endif %}. Enter existing balances as "opening balance" on each employee's leave page.</p>
+  {% if plan.entries %}
+  <div class="tablewrap" style="max-height:340px"><table><thead><tr><th>Employee</th><th>Leave</th><th>Date</th><th class="n">Days</th><th>Why</th></tr></thead><tbody>
+  {% for x in plan.entries[:200] %}<tr><td>{{ x.emp.emp_code }} {{ x.emp.name }}</td><td>{{ x.lt.code }}</td><td class="nowrap">{{ x.on.strftime('%d %b %Y') }}</td><td class="n"><b>{{ '%g' % x.amount }}</b></td><td>{{ x.note }}</td></tr>{% endfor %}
+  {% if plan.entries|length > 200 %}<tr><td colspan="5" class="muted">&hellip; and {{ plan.entries|length - 200 }} more</td></tr>{% endif %}</tbody></table></div>
+  <form method="post" style="margin-top:10px">{{ csrf() }}<input type="hidden" name="action" value="accrue"><button class="btn" data-confirm="Create {{ plan.entries|length }} credit(s) now?">Create {{ plan.entries|length }} credit(s)</button></form>
+  {% else %}<div class="alert ok">Nothing is due. All credits up to today are already in the ledger.</div>{% endif %}
+  {{ alerts(plan.skipped, 'warn') }}
+  <p class="muted" style="font-size:12.5px;margin-bottom:0">"1 day per N days worked" credits appear only for months whose payroll is <b>finalised</b>.</p></div>
+
+<div class="card"><h2 style="margin-top:0">2. Year-end: carry forward and lapse</h2>
+  <p class="muted">At the end of a leave year each balance is carried forward according to its policy (none / limit / all); the rest lapses. Do this once the year is over and <b>before</b> crediting the new year.</p>
+  <div class="tablewrap"><table><thead><tr><th>Leave year</th><th>Status</th><th></th></tr></thead><tbody>
+  {% for y in years %}<tr><td>{{ y.label }}</td><td><span class="badge {{ 'ok' if y.done else ('warn' if y.over else '') }}">{{ 'Closed' if y.done else ('Ready to close' if y.over else 'In progress') }}</span></td>
+  <td>{% if y.over and not y.done %}<a class="btn secondary sm" href="{{ url_for('leave_run', year=y.year) }}#rollover">Preview closing</a>{% endif %}</td></tr>
+  {% else %}<tr><td colspan="3" class="empty">No leave data yet.</td></tr>{% endfor %}</tbody></table></div>
+  {% if roll %}<div id="rollover" style="margin-top:12px"><h3>Closing {{ roll.year }}: preview</h3>
+    <div class="tablewrap" style="max-height:320px"><table><thead><tr><th>Employee</th><th>Leave</th><th class="n">Balance at year end</th><th class="n">Carried</th><th class="n">Lapses</th></tr></thead><tbody>
+    {% for r in roll.rows[:300] %}<tr><td>{{ r.emp.emp_code }} {{ r.emp.name }}</td><td>{{ r.lt.code }}</td><td class="n">{{ '%g' % r.balance }}</td><td class="n">{{ '%g' % r.carry }}</td><td class="n">{{ '%g' % r.lapse }}</td></tr>
+    {% else %}<tr><td colspan="5" class="empty">No positive balances to carry or lapse.</td></tr>{% endfor %}</tbody></table></div>
+    <form method="post" style="margin-top:10px">{{ csrf() }}<input type="hidden" name="action" value="rollover"><input type="hidden" name="year" value="{{ roll.year }}">
+      <button class="btn danger" data-confirm="Close leave year {{ roll.year }}? {{ '%g' % roll.total_lapsed }} day(s) will lapse. This cannot be repeated.">Close {{ roll.year }} ({{ '%g' % roll.total_lapsed }} day(s) lapse)</button></form></div>{% endif %}</div>
+
+<div class="card"><h2 style="margin-top:0">3. Expired comp off</h2>
+  {% if expiring %}<div class="tablewrap"><table><thead><tr><th>Employee</th><th>Worked</th><th>Expired on</th><th class="n">Unused days</th></tr></thead><tbody>
+    {% for x in expiring %}<tr><td>{{ x.emp.emp_code }} {{ x.emp.name }}</td><td>{{ x.grant.worked_on.strftime('%d %b %Y') }}</td><td>{{ x.grant.expires_on.strftime('%d %b %Y') }}</td><td class="n">{{ '%g' % x.lapsed }}</td></tr>{% endfor %}</tbody></table></div>
+    <form method="post" style="margin-top:10px">{{ csrf() }}<input type="hidden" name="action" value="expire"><button class="btn secondary">Lapse {{ expiring|length }} expired grant(s)</button></form>
+  {% else %}<div class="alert ok">No comp off has expired unused.</div>{% endif %}</div>
+{% endblock %}

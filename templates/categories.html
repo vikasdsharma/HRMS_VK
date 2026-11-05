@@ -1,14 +1,18 @@
-{% extends "base.html" %}{% block body %}
-<h1>Salary structures</h1>
-<p class="muted">All rates are per paid day. PF wages = Basic + DA. Set rates to at least the current Haryana minimum wage for the skill category.</p>
-<p><a class="btn" href="{{ url_for('category_form') }}">+ New category</a></p>
-<div class="scroll"><table>
-<tr><th>Name</th><th class="n">Basic/day</th><th class="n">DA/day</th><th class="n">HRA/day</th><th class="n">Other/day</th><th class="n">Total/day</th><th>OT x</th><th>PF</th><th>ESI</th><th>Employees</th><th></th></tr>
-{% for c in cats %}<tr><td>{{ c.name }}<br><small class="muted">{{ c.description or '' }}</small></td>
-<td class="n">{{ c.basic_day }}</td><td class="n">{{ c.da_day }}</td><td class="n">{{ c.hra_day }}</td><td class="n">{{ c.other_day }}</td>
-<td class="n"><b>{{ c.total_day|round(2) }}</b></td><td>{{ c.ot_multiplier }}</td>
-<td>{{ 'Yes' if c.pf_applicable else 'No' }}</td><td>{{ 'Yes' if c.esi_applicable else 'No' }}</td><td>{{ c.employees|length }}</td>
-<td><a href="{{ url_for('category_form', cid=c.id) }}">Edit</a>
-{% if not c.employees %}<form method="post" action="{{ url_for('category_delete', cid=c.id) }}" style="display:inline"><button class="btn red" style="padding:2px 8px">Delete</button></form>{% endif %}</td></tr>
-{% endfor %}</table></div>
+{% extends "base.html" %}{% block title %}Salary structures{% endblock %}{% block body %}
+{% from "_macros.html" import csrf %}
+<div class="page-head"><div><h1>Salary structures</h1><p>All amounts are per paid day. PF wages = Basic + DA. Rates are dated: a change applies from the month you choose and never alters earlier months.</p></div><span class="sp"></span>
+  {% if is_admin %}<a class="btn" href="{{ url_for('category_form') }}">+ New category</a>{% endif %}</div>
+<div class="tablewrap"><table>
+<thead><tr><th>Name</th><th class="n">Basic</th><th class="n">DA</th><th class="n">HRA</th><th class="n">Other</th><th class="n">Total / day</th><th>OT &times;</th><th>PF</th><th>ESI</th><th class="n">Min. wage</th><th class="n">Employees</th><th></th></tr></thead><tbody>
+{% for c in cats %}{% set r = rate_now(c) %}{% set total = (r.basic + r.da + r.hra + r.other)|round(2) %}
+<tr><td><b>{{ c.name }}</b><br><small class="muted">{{ c.description or '' }}</small></td>
+<td class="n">{{ r.basic }}</td><td class="n">{{ r.da }}</td><td class="n">{{ r.hra }}</td><td class="n">{{ r.other }}</td>
+<td class="n"><b>{{ total }}</b></td><td>{{ r.ot_mult }}</td>
+<td>{{ 'Yes' if c.pf_applicable else 'No' }}</td><td>{{ 'Yes' if c.esi_applicable else 'No' }}</td>
+<td class="n">{% if c.min_wage_day %}{{ c.min_wage_day }}{% if total < c.min_wage_day %} <span class="badge err">below minimum</span>{% endif %}{% else %}<span class="muted">not set</span>{% endif %}</td>
+<td class="n">{{ c.employees|length }}</td>
+<td class="nowrap">{% if is_admin %}<a class="btn ghost sm" href="{{ url_for('category_form', cid=c.id) }}">Edit</a>
+{% if not c.employees %}<form method="post" action="{{ url_for('category_delete', cid=c.id) }}" class="inline" data-confirm="Delete the category {{ c.name }}?">{{ csrf() }}<button class="btn danger sm">Delete</button></form>{% endif %}{% endif %}</td></tr>
+{% else %}<tr><td colspan="12" class="empty">No categories yet.</td></tr>{% endfor %}</tbody></table></div>
+<p class="muted" style="font-size:12.5px">The sample rates are placeholders. Set each category's rates to the current Haryana minimum-wage notification for your industry and zone, and fill in the "notified minimum" so the system can warn you when a rate falls below it.</p>
 {% endblock %}

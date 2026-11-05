@@ -1,0 +1,15 @@
+{% extends "base.html" %}{% block title %}Attendance corrections{% endblock %}{% block body %}
+{% from "_macros.html" import csrf, pager %}
+<div class="page-head"><div><h1>Attendance correction requests</h1><p>Employees ask to fix a day they were wrongly marked. Approving writes the attendance mark.</p></div></div>
+<form method="get" class="toolbar"><div><label for="s">Show</label><select id="s" name="status" data-autosubmit style="width:180px">{% for s in ['pending','approved','rejected','all'] %}<option {{ 'selected' if status == s }}>{{ s }}</option>{% endfor %}</select></div></form>
+<div class="tablewrap"><table><thead><tr><th>Employee</th><th>Date</th><th>Asks for</th><th>What they say</th><th>Asked</th><th>Status</th><th></th></tr></thead><tbody>
+{% for r in p.items %}<tr><td><a href="{{ url_for('attendance_employee', eid=r.emp_id) }}">{{ r.employee.name }}</a><br><small class="muted">{{ r.employee.emp_code }}</small></td>
+<td class="nowrap">{{ r.on_date.strftime('%d %b %Y') }}</td><td>{{ statuses.get(r.requested_status) }}</td><td>{{ r.reason }}</td>
+<td class="nowrap">{{ r.requested_at.strftime('%d %b %H:%M') }}</td>
+<td><span class="badge {{ {'pending': 'warn', 'approved': 'ok', 'rejected': 'err'}[r.status] }}">{{ r.status }}</span>{% if r.decided_by %}<br><small class="muted">{{ r.decided_by }}{% if r.decision_note %}: {{ r.decision_note }}{% endif %}</small>{% endif %}</td>
+<td>{% if r.status == 'pending' %}
+  <form method="post" action="{{ url_for('attendance_request_decide', rid=r.id, action='approve') }}" class="row" style="gap:4px">{{ csrf() }}<input name="note" placeholder="note" maxlength="150" style="width:120px"><button class="btn sm">Approve</button></form>
+  <form method="post" action="{{ url_for('attendance_request_decide', rid=r.id, action='reject') }}" class="row" style="gap:4px;margin-top:4px">{{ csrf() }}<input name="note" placeholder="reason" maxlength="150" style="width:120px"><button class="btn secondary sm">Reject</button></form>{% endif %}</td></tr>
+{% else %}<tr><td colspan="7" class="empty">Nothing here.</td></tr>{% endfor %}</tbody></table></div>
+{{ pager(p, 'attendance_requests', args) }}
+{% endblock %}

@@ -1,0 +1,14 @@
+{% extends "base.html" %}{% block title %}Users{% endblock %}{% block body %}
+{% from "_macros.html" import csrf %}
+<div class="page-head"><div><h1>Users</h1><p>People who can sign in to {{ org.name }}.</p></div><span class="sp"></span><a class="btn" href="{{ url_for('user_form') }}">+ Add user</a></div>
+<div class="tablewrap"><table><thead><tr><th>Username</th><th>Role</th><th>Status</th><th>Last sign-in</th><th></th></tr></thead><tbody>
+{% for u in rows %}<tr><td>{{ u.username }}</td><td>{{ 'Admin' if u.role == 'admin' else 'User' }}</td>
+<td><span class="badge {{ 'ok' if u.is_active else 'err' }}">{{ 'Active' if u.is_active else 'Disabled' }}</span>
+  {% if u.locked_until and u.locked_until > today_dt %}<span class="badge warn">Locked</span>{% endif %}
+  {% if u.must_change_password %}<span class="badge info">Must change password</span>{% endif %}</td>
+<td class="nowrap">{{ u.last_login_at.strftime('%d-%b-%Y %H:%M') if u.last_login_at else 'never' }}</td>
+<td class="nowrap"><a class="btn ghost sm" href="{{ url_for('user_form', uid=u.id) }}">Edit / reset password</a>
+  {% if u.locked_until and u.locked_until > today_dt %}<form method="post" action="{{ url_for('user_unlock', uid=u.id) }}" class="inline">{{ csrf() }}<button class="btn secondary sm">Unlock</button></form>{% endif %}</td></tr>
+{% else %}<tr><td colspan="5" class="empty">No users.</td></tr>{% endfor %}</tbody></table></div>
+<p class="muted" style="font-size:12.5px"><b>Admin</b> manages users, settings, finalises payroll and downloads statutory files. <b>User</b> works with employees, attendance and payroll drafts. Passwords set by an admin are temporary: the person must change them at first sign-in.</p>
+{% endblock %}

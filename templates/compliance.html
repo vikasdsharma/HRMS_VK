@@ -1,24 +1,45 @@
-{% extends "base.html" %}{% block body %}
-<h1>EPF / ESI - {{ month_label(month) }}</h1>
-<div class="card"><form method="get" class="row" style="margin:0"><div><label>Wage month</label><input type="month" name="month" value="{{ month }}"></div><button class="btn sec">View</button></form></div>
-{% if not T.slips %}<div class="warn">No payslips generated for this month yet. <a href="{{ url_for('payroll_list', month=month) }}">Go to Payroll</a>.</div>{% else %}
-<div class="grid">
-<div class="card"><h2 style="margin-top:0">EPFO (Employees' Provident Fund)</h2>
-<table><tr><td>Members (with PF)</td><td class="n">{{ T.pf_members }}</td></tr><tr><td>EPF wages</td><td class="n">{{ T.epf_wages }}</td></tr>
-<tr><td>A/c 01 - EPF (EE 12% + ER 3.67%)</td><td class="n">{{ T.acc01_ee + T.acc01_er }}</td></tr><tr><td>A/c 10 - EPS (8.33%)</td><td class="n">{{ T.acc10 }}</td></tr>
-<tr><td>A/c 02 - Admin charges</td><td class="n">{{ T.acc02 }}</td></tr><tr><td>A/c 21 - EDLI</td><td class="n">{{ T.acc21 }}</td></tr>
-<tr><th>Total payable</th><th class="n">Rs {{ T.pf_total }}</th></tr></table>
-{% for m in pf_missing %}<div class="warn">No UAN, excluded from ECR: {{ m }}</div>{% endfor %}
-<p><a class="btn" href="{{ url_for('ecr_download', month=month) }}">Download ECR file (.txt)</a>
-<a class="btn sec" href="{{ url_for('epf_challan', month=month) }}">EPF challan worksheet (PDF)</a></p>
-<p class="muted">Upload the ECR on the EPFO Unified Portal (Payment &gt; ECR upload); the portal issues the TRRN challan to pay.</p></div>
+{% extends "base.html" %}{% block title %}EPF / ESI{% endblock %}{% block body %}
+<div class="page-head"><div><h1>EPF / ESI &mdash; {{ month_label(month) }}</h1><p>Files and challan worksheets for the government portals. Due by the 15th of the following month.</p></div></div>
+
+<form method="get" class="toolbar"><div><label for="m">Wage month</label><select id="m" name="month" data-autosubmit style="width:230px">
+  {% for m in month_opts %}<option value="{{ m }}" {{ 'selected' if m == month }}>{{ month_label(m) }}</option>{% endfor %}
+  {% if month not in month_opts %}<option value="{{ month }}" selected>{{ month_label(month) }}</option>{% endif %}</select></div></form>
+
+{% if not T.slips %}
+<div class="alert warn">No payslips for this month yet. <a href="{{ url_for('payroll_list', month=month) }}">Go to Payroll</a>.</div>
+{% else %}
+<div class="card">
+  <h2 style="margin-top:0">Pre-submission check
+    <span class="badge {{ {'pass': 'ok', 'warn': 'warn', 'fail': 'err'}[status] }}">{{ {'pass': 'All clear', 'warn': 'Warnings', 'fail': 'Problems found'}[status] }}</span></h2>
+  {% if issues %}<ul style="margin:6px 0 0;padding-left:18px">
+    {% for i in issues[:30] %}<li><span class="badge {{ 'err' if i.level == 'error' else 'warn' }}">{{ 'Fix' if i.level == 'error' else 'Check' }}</span> {{ i.msg }}</li>{% endfor %}
+    {% if issues|length > 30 %}<li class="muted">&hellip; and {{ issues|length - 30 }} more</li>{% endif %}</ul>
+  {% else %}<p class="muted" style="margin:0">Nothing to fix. The month is finalised and every member has valid UAN / ESIC numbers.</p>{% endif %}
+</div>
+
+<div class="grid g2">
+<div class="card"><h2 style="margin-top:0">EPFO &mdash; Provident Fund</h2>
+  <table><tbody>
+    <tr><td>Members with PF</td><td class="n">{{ T.pf_members }}</td></tr><tr><td>EPF wages</td><td class="n">{{ T.epf_wages }}</td></tr>
+    <tr><td>A/c 01 &mdash; EPF (employee 12% + employer balance)</td><td class="n">{{ T.acc01_ee + T.acc01_er }}</td></tr>
+    <tr><td>A/c 10 &mdash; EPS (8.33%)</td><td class="n">{{ T.acc10 }}</td></tr>
+    <tr><td>A/c 02 &mdash; Admin charges</td><td class="n">{{ T.acc02 }}</td></tr>
+    <tr><td>A/c 21 &mdash; EDLI</td><td class="n">{{ T.acc21 }}</td></tr>
+    <tr><th>Total payable</th><th class="n">&#8377;{{ T.pf_total }}</th></tr></tbody></table>
+  {% if is_admin %}<p class="row" style="margin-bottom:0"><a class="btn" href="{{ url_for('ecr_download', month=month) }}" {% if status == 'fail' %}data-confirm-link="The pre-submission check found problems. Download the ECR file anyway?"{% endif %}>Download ECR file (.txt)</a>
+    <a class="btn secondary" href="{{ url_for('epf_challan', month=month) }}">EPF challan worksheet (PDF)</a></p>
+  <p class="muted" style="font-size:12.5px;margin-bottom:0">Upload the ECR on the EPFO Unified Portal; the portal issues the TRRN challan to pay.</p>
+  {% else %}<p class="muted">Downloads are available to administrators.</p>{% endif %}</div>
+
 <div class="card"><h2 style="margin-top:0">ESIC</h2>
-<table><tr><td>Insured persons</td><td class="n">{{ T.esi_members }}</td></tr><tr><td>Wages</td><td class="n">{{ T.esi_wages }}</td></tr>
-<tr><td>Employee share (0.75%)</td><td class="n">{{ T.esi_ee }}</td></tr><tr><td>Employer share (3.25%)</td><td class="n">{{ T.esi_er }}</td></tr>
-<tr><th>Total payable</th><th class="n">Rs {{ T.esi_total }}</th></tr></table>
-{% for m in esi_missing %}<div class="warn">No ESIC IP number, excluded: {{ m }}</div>{% endfor %}
-<p><a class="btn" href="{{ url_for('esi_download', month=month) }}">Download ESI contribution file (.xlsx)</a>
-<a class="btn sec" href="{{ url_for('esi_challan', month=month) }}">ESI challan worksheet (PDF)</a></p>
-<p class="muted">Upload on the ESIC employer portal (Monthly Contribution &gt; upload), then generate the challan and pay.</p></div></div>
-<p class="muted">Both are due by the 15th of the following month. Verify the files against the portal's current formats before first use.</p>{% endif %}
+  <table><tbody>
+    <tr><td>Insured persons</td><td class="n">{{ T.esi_members }}</td></tr><tr><td>Wages</td><td class="n">{{ T.esi_wages }}</td></tr>
+    <tr><td>Employee share ({{ S.esi_ee_rate }}%)</td><td class="n">{{ T.esi_ee }}</td></tr><tr><td>Employer share ({{ S.esi_er_rate }}%)</td><td class="n">{{ T.esi_er }}</td></tr>
+    <tr><th>Total payable</th><th class="n">&#8377;{{ T.esi_total }}</th></tr></tbody></table>
+  {% if is_admin %}<p class="row" style="margin-bottom:0"><a class="btn" href="{{ url_for('esi_download', month=month) }}" {% if status == 'fail' %}data-confirm-link="The pre-submission check found problems. Download the ESI file anyway?"{% endif %}>Download ESI file (.xlsx)</a>
+    <a class="btn secondary" href="{{ url_for('esi_challan', month=month) }}">ESI challan worksheet (PDF)</a></p>
+  <p class="muted" style="font-size:12.5px;margin-bottom:0">Upload on the ESIC employer portal (Monthly Contribution), then generate the challan and pay.</p>{% endif %}</div>
+</div>
+<p class="muted" style="font-size:12.5px">The PDFs are reference worksheets; the official challans are generated by the portals. Check the file layouts against the portals' current formats before the first filing.</p>
+{% endif %}
 {% endblock %}

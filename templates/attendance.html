@@ -1,19 +1,46 @@
-{% extends "base.html" %}{% block body %}
-<h1>Monthly attendance</h1>
+{% extends "base.html" %}{% block title %}Monthly attendance{% endblock %}{% block body %}
+{% from "_macros.html" import csrf, alerts %}
+<div class="page-head"><div><h1>Monthly attendance</h1><p>Upload a CSV for a month, or <a href="{{ url_for('attendance_daily') }}">mark attendance day by day</a> and roll it up.</p></div></div>
+
 <div class="card">
-<form method="get" class="row"><div><label>Month</label><input type="month" name="month" value="{{ month }}"></div><button class="btn sec">View</button>
-<a class="btn sec" href="{{ url_for('attendance_template', month=month) }}">Download CSV with all active employees</a></form>
-<p class="muted">CSV columns: <code>emp_code, present_days, paid_holidays, ot_hours, advance, other_deduction</code>. Employee codes must already exist. Re-uploading a month overwrites those employees' rows. Paid days = present + paid holidays (weekly offs).</p>
-<form method="post" enctype="multipart/form-data" class="row"><input type="hidden" name="month" value="{{ month }}">
-<input type="file" name="file" accept=".csv" required style="width:340px"><button class="btn">Upload for {{ month_label(month) }}</button></form>
+<h2>Upload attendance CSV</h2>
+<form method="post" enctype="multipart/form-data" class="row">{{ csrf() }}
+  <div><label for="month_up">For month</label>
+    <select id="month_up" name="month" style="width:280px">
+      {% for m in month_opts %}<option value="{{ m }}" {{ 'selected' if m == default_month }}>{{ month_label(m) }}{{ ' (current)' if m == default_month }}{% if counts.get(m) %} - {{ counts[m] }} records already{% endif %}{% if m in finals %} - FINALISED{% endif %}</option>{% endfor %}
+    </select></div>
+  <div><label for="file">CSV file</label><input id="file" type="file" name="file" accept=".csv" required style="width:320px"></div>
+  <button class="btn">Upload</button>
+  <a class="btn secondary" href="{{ url_for('attendance_template', month=default_month) }}">Download CSV with all active employees</a>
+</form>
+<p class="muted" style="margin-bottom:0;font-size:12.5px">Defaults to the current month; pick an earlier month to add or correct past attendance. Columns: <code>emp_code, present_days, paid_holidays, ot_hours, advance, other_deduction</code>. Advance and other deduction are whole rupees. Uploading a month that already has records <b>overwrites those employees' rows</b> (then re-generate payslips). Finalised months are locked.</p>
 </div>
+
 {% if result %}{% if result.errors %}
-<div class="flash err"><b>Upload rejected - nothing saved.</b></div>
-<table><tr><th style="width:80px">Line</th><th>Problem</th></tr>{% for r, m in result.errors %}<tr><td>{{ r }}</td><td>{{ m }}</td></tr>{% endfor %}</table>
-{% else %}<div class="flash ok">Saved attendance for {{ result.saved }} employee(s).</div>{% endif %}{% endif %}
-<h2>{{ month_label(month) }} - {{ rows|length }} record(s)</h2>
-<div class="scroll"><table><tr><th>Code</th><th>Name</th><th class="n">Present</th><th class="n">Paid holidays</th><th class="n">OT hrs</th><th class="n">Advance</th><th class="n">Other ded.</th><th></th></tr>
-{% for a in rows %}<tr><td>{{ a.employee.emp_code }}</td><td>{{ a.employee.name }}</td><td class="n">{{ a.present_days }}</td><td class="n">{{ a.paid_holidays }}</td><td class="n">{{ a.ot_hours }}</td><td class="n">{{ a.advance }}</td><td class="n">{{ a.other_deduction }}</td>
-<td><form method="post" action="{{ url_for('attendance_delete', aid=a.id) }}"><button class="btn red" style="padding:2px 8px">Remove</button></form></td></tr>
-{% else %}<tr><td colspan="8" class="muted">No attendance uploaded for this month.</td></tr>{% endfor %}</table></div>
+<div class="alert err" role="alert"><div><b>Upload rejected &mdash; nothing was saved.</b></div></div>
+<div class="tablewrap" style="margin-bottom:16px"><table><thead><tr><th style="width:80px">Line</th><th>Problem</th></tr></thead><tbody>
+{% for r, m in result.errors[:50] %}<tr><td>{{ r }}</td><td>{{ m }}</td></tr>{% endfor %}</tbody></table></div>
+{% else %}<div class="alert ok" role="status">Saved attendance for {{ result.saved }} employee(s) for {{ month_label(month) }}. Next: <a href="{{ url_for('payroll_list', month=month) }}">generate payroll</a>.</div>{% endif %}
+{{ alerts(result.warnings, 'warn', 'Worth checking') }}
+{% endif %}
+
+<h2>View a month</h2>
+<form method="get" class="toolbar"><div><label for="month_v">Month</label><select id="month_v" name="month" style="width:260px" data-autosubmit>
+  {% for m in month_opts %}<option value="{{ m }}" {{ 'selected' if m == month }}>{{ month_label(m) }}</option>{% endfor %}
+  {% if month not in month_opts %}<option value="{{ month }}" selected>{{ month_label(month) }}</option>{% endif %}</select></div>
+  <button class="btn secondary">View</button></form>
+<h3>{{ month_label(month) }} &mdash; {{ rows|length }} record(s) {% if month in finals %}<span class="badge info">finalised &middot; locked</span>{% endif %}</h3>
+<div class="tablewrap"><table><thead><tr><th>Code</th><th>Name</th><th class="n">Present</th><th class="n">Paid holidays</th><th class="n">OT hrs</th><th class="n">Advance</th><th class="n">Other ded.</th><th></th></tr></thead><tbody>
+{% for a in rows %}<tr><td>{{ a.employee.emp_code }}</td><td>{{ a.employee.name }}</td><td class="n">{{ '%g' % a.present_days }}</td><td class="n">{{ '%g' % a.paid_holidays }}</td><td class="n">{{ '%g' % a.ot_hours }}</td><td class="n">{{ '%g' % a.advance }}</td><td class="n">{{ '%g' % a.other_deduction }}</td>
+<td>{% if month not in finals %}<form method="post" action="{{ url_for('attendance_delete', aid=a.id) }}" class="inline" data-confirm="Remove this attendance row (and its payslip)?">{{ csrf() }}<button class="btn danger sm">Remove</button></form>{% endif %}</td></tr>
+{% else %}<tr><td colspan="8" class="empty">No attendance uploaded for this month.</td></tr>{% endfor %}</tbody></table></div>
+
+<h2>Upload history</h2>
+<div class="tablewrap"><table><thead><tr><th>Uploaded on</th><th>Month</th><th>File name</th><th>By</th><th class="n">Employees saved</th><th>Result</th></tr></thead><tbody>
+{% for u in history %}<tr><td class="nowrap">{{ u.uploaded_at.strftime('%d-%b-%Y %H:%M') if u.uploaded_at else '-' }}</td>
+<td><a href="{{ url_for('attendance', month=u.month) }}">{{ month_label(u.month) }}</a></td><td>{{ u.filename }}</td><td>{{ u.uploaded_by }}</td>
+<td class="n">{{ u.rows_saved }}</td>
+<td><span class="badge {{ 'err' if u.status == 'Rejected' else 'ok' }}">{{ u.status }}</span>{% if u.details %}<br><small class="muted">{{ u.details }}</small>{% endif %}</td></tr>
+{% else %}<tr><td colspan="6" class="empty">No uploads yet.</td></tr>{% endfor %}</tbody></table></div>
+<p class="muted" style="font-size:12.5px">Latest 100 uploads for this organization, including rejected files.</p>
 {% endblock %}

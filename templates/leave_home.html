@@ -1,0 +1,20 @@
+{% extends "base.html" %}{% block title %}Leave balances{% endblock %}{% block body %}
+<div class="page-head"><div><h1>Leave balances</h1><p>Leave year {{ year }}. Leave is managed from {{ go_live.strftime('%d %b %Y') }}.</p></div><span class="sp"></span>
+  <a class="btn secondary" href="{{ url_for('leave_balances_xlsx') }}">Download Excel</a></div>
+
+<div class="stats">
+  <div class="stat"><div class="l">Leave applications waiting</div><div class="v">{{ pending }}</div><div class="s"><a href="{{ url_for('leave_applications') }}">Review</a></div></div>
+  <div class="stat"><div class="l">Attendance corrections waiting</div><div class="v">{{ reqs }}</div><div class="s"><a href="{{ url_for('attendance_requests') }}">Review</a></div></div>
+  <div class="stat"><div class="l">Run credits / year-end</div><div class="v">&rarr;</div><div class="s"><a href="{{ url_for('leave_run') }}">Accrual &amp; year-end</a></div></div>
+</div>
+
+<form method="get" class="toolbar" role="search"><div style="min-width:260px"><label for="q">Find employee</label><input id="q" name="q" value="{{ q }}" placeholder="Name or code"></div><button class="btn secondary">Search</button></form>
+<div class="tablewrap"><table>
+<thead><tr><th>Code</th><th>Name</th>{% for t in lts if t.uses_balance %}<th class="n" title="{{ t.name }}">{{ t.code }}</th>{% endfor %}<th class="n">Pending</th><th></th></tr></thead><tbody>
+{% for r in rows %}<tr><td>{{ r.emp.emp_code }}</td><td><a href="{{ url_for('leave_employee', eid=r.emp.id) }}">{{ r.emp.name }}</a>{% if not r.emp.doj %} <span class="badge err">no joining date</span>{% endif %}</td>
+{% for t in lts if t.uses_balance %}<td class="n">{{ '%g' % r.bal[t.id] }}</td>{% endfor %}
+<td class="n">{{ '%g' % r.pending if r.pending else '-' }}</td>
+<td class="nowrap"><a class="btn ghost sm" href="{{ url_for('leave_employee', eid=r.emp.id) }}">Manage</a> <a class="btn ghost sm" href="{{ url_for('attendance_employee', eid=r.emp.id) }}">Calendar</a></td></tr>
+{% else %}<tr><td colspan="{{ lts|length + 4 }}" class="empty">No employees found.</td></tr>{% endfor %}</tbody></table></div>
+<p class="muted" style="font-size:12.5px">Balances come from the leave ledger (credits, approved leave, adjustments, lapses). Open an employee to see how a number arose.</p>
+{% endblock %}

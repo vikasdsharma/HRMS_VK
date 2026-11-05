@@ -1,0 +1,25 @@
+{% extends "base.html" %}{% block title %}Employee portal access{% endblock %}{% block body %}
+{% from "_macros.html" import csrf, pager %}
+<div class="page-head"><div><h1>Employee portal access</h1><p>Give an employee a login to see their own leave, attendance and finalised payslips, apply for leave and ask for attendance corrections. They can never see anyone else's data.</p></div><span class="sp"></span>
+  <form method="post" action="{{ url_for('portal_bulk') }}" class="inline" data-download data-confirm="Create a login for every active employee who has none? You will get a CSV with the temporary passwords. It is shown only once."> {{ csrf() }}<button class="btn secondary">Create logins for everyone &amp; download list</button></form></div>
+
+<div class="alert info">A username must be unique across the whole system. The suggested username is <code>employeecode.{{ org.id }}</code> (for example <code>e001.{{ org.id }}</code>). The temporary password is shown <b>once</b> and the employee must change it at first sign-in. Employees who leave the company lose access automatically.</div>
+
+<form method="get" class="toolbar" role="search"><div style="min-width:260px"><label for="q">Find employee</label><input id="q" name="q" value="{{ q }}" placeholder="Name or code"></div><button class="btn secondary">Search</button></form>
+<div class="tablewrap"><table><thead><tr><th>Code</th><th>Name</th><th>Portal login</th><th>Last sign-in</th><th></th></tr></thead><tbody>
+{% for e in p.items %}{% set u = users.get(e.id) %}<tr><td>{{ e.emp_code }}</td><td><a href="{{ url_for('employee_detail', eid=e.id) }}">{{ e.name }}</a></td>
+<td>{% if u %}<code>{{ u.username }}</code> <span class="badge {{ 'ok' if u.is_active else 'err' }}">{{ 'Active' if u.is_active else 'Disabled' }}</span>
+  {% if u.locked_until and u.locked_until > now %}<span class="badge warn">Locked</span>{% endif %}{% if u.must_change_password %} <span class="badge info">temporary password</span>{% endif %}
+  {% else %}<span class="muted">no access</span>{% endif %}</td>
+<td class="nowrap">{{ u.last_login_at.strftime('%d %b %Y %H:%M') if u and u.last_login_at else '-' }}</td>
+<td class="nowrap">{% if u %}
+  <form method="post" action="{{ url_for('portal_manage', eid=e.id, action='reset') }}" class="inline" data-confirm="Set a new temporary password for {{ e.name }}?">{{ csrf() }}<button class="btn secondary sm">Reset password</button></form>
+  {% if u.is_active %}<form method="post" action="{{ url_for('portal_manage', eid=e.id, action='disable') }}" class="inline" data-confirm="Stop {{ e.name }} from signing in?">{{ csrf() }}<button class="btn danger sm">Disable</button></form>
+  {% else %}<form method="post" action="{{ url_for('portal_manage', eid=e.id, action='enable') }}" class="inline">{{ csrf() }}<button class="btn sm">Enable</button></form>{% endif %}
+  {% if u.locked_until and u.locked_until > now %}<form method="post" action="{{ url_for('portal_manage', eid=e.id, action='unlock') }}" class="inline">{{ csrf() }}<button class="btn secondary sm">Unlock</button></form>{% endif %}
+  {% else %}<form method="post" action="{{ url_for('portal_grant', eid=e.id) }}" class="row" style="gap:4px">{{ csrf() }}
+    <input name="username" placeholder="{{ e.emp_code|lower }}.{{ org.id }}" style="width:150px" aria-label="Username for {{ e.name }}" autocomplete="off">
+    <button class="btn sm">Give access</button></form>{% endif %}</td></tr>
+{% else %}<tr><td colspan="5" class="empty">No active employees.</td></tr>{% endfor %}</tbody></table></div>
+{{ pager(p, 'portal_access', args) }}
+{% endblock %}

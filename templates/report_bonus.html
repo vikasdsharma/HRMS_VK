@@ -1,0 +1,13 @@
+{% extends "base.html" %}{% block title %}Bonus worksheet{% endblock %}{% block body %}
+<div class="page-head"><div><h1>Bonus worksheet &mdash; FY {{ fy }}-{{ (fy + 1) % 100 }}</h1>
+  <p>{{ data.rate|round(2) }}% of Basic + DA, each month capped at &#8377;{{ '{:,.0f}'.format(data.ceiling) }} (or the notified minimum wage if higher). Months with salary above the eligibility ceiling are excluded; at least 30 days worked are needed.</p></div><span class="sp"></span>
+  <a class="btn secondary" href="{{ url_for('report_bonus_xlsx', fy=fy) }}">Download Excel</a></div>
+<form method="get" class="toolbar"><div><label for="fy">Financial year starting April</label><select id="fy" name="fy" data-autosubmit style="width:200px">{% for y in fy_opts %}<option value="{{ y }}" {{ 'selected' if y == fy }}>{{ y }}-{{ (y + 1) % 100 }}</option>{% endfor %}</select></div></form>
+<div class="stats"><div class="stat"><div class="l">Total bonus payable</div><div class="v">&#8377;{{ '{:,}'.format(data.total) }}</div></div>
+  <div class="stat"><div class="l">Employees</div><div class="v">{{ data.rows|length }}</div><div class="s">{{ data.rows|selectattr('eligible')|list|length }} eligible</div></div></div>
+<div class="tablewrap"><table><thead><tr><th>Code</th><th>Name</th><th class="n">Days worked</th><th class="n">Months counted</th><th class="n">Bonus wages</th><th class="n">Bonus</th><th>Eligible</th><th>Note</th></tr></thead><tbody>
+{% for r in data.rows %}<tr><td>{{ r.code }}</td><td>{{ r.name }}</td><td class="n">{{ '%g' % r.days }}</td><td class="n">{{ r.months }}</td><td class="n">{{ '{:,.2f}'.format(r.wages) }}</td><td class="n"><b>{{ '{:,}'.format(r.bonus) }}</b></td>
+<td><span class="badge {{ 'ok' if r.eligible else '' }}">{{ 'Yes' if r.eligible else 'No' }}</span></td><td class="muted">{{ r.note }}</td></tr>
+{% else %}<tr><td colspan="8" class="empty">No payslips found for this financial year.</td></tr>{% endfor %}</tbody></table></div>
+<p class="muted" style="font-size:12.5px">Built only from payslips in the system. Bonus is normally paid within 8 months of the end of the financial year. The minimum rate is 8.33% and the maximum 20%; set the rate in Settings.</p>
+{% endblock %}

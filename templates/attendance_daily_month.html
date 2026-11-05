@@ -1,0 +1,20 @@
+{% extends "base.html" %}{% block title %}Daily attendance &middot; month{% endblock %}{% block body %}
+{% from "_macros.html" import csrf %}
+<div class="page-head"><div><h1>Daily attendance &mdash; {{ month_label(month) }}</h1><p>Review the month, then write it into monthly attendance for payroll.</p></div><span class="sp"></span>
+  <a class="btn secondary" href="{{ url_for('attendance_daily') }}">Mark a day</a></div>
+
+<form method="get" class="toolbar"><div><label for="m">Month</label><select id="m" name="month" data-autosubmit style="width:240px">{% for m in month_opts %}<option value="{{ m }}" {{ 'selected' if m == month }}>{{ month_label(m) }}</option>{% endfor %}</select></div>
+  <span class="sp"></span>
+  {% if locked %}<span class="badge info">finalised &middot; locked</span>
+  {% elif roll %}</form><form method="post" action="{{ url_for('attendance_daily_apply') }}" class="inline" data-confirm="Write these daily marks into monthly attendance for {{ month_label(month) }}? Existing monthly rows for these employees will be overwritten (advance / deductions are kept).">{{ csrf() }}<input type="hidden" name="month" value="{{ month }}"><button class="btn">Apply to monthly attendance ({{ roll|length }} employees)</button></form><form class="inline">{% endif %}
+</form>
+
+<div class="tablewrap"><table class="daygrid">
+<thead><tr><th>Employee</th>{% for d in range(1, dim + 1) %}<th>{{ d }}</th>{% endfor %}<th>Present</th><th>Paid off</th><th>OT</th></tr></thead><tbody>
+{% for e in emps %}{% set row = grid.get(e.id, {}) %}{% set r = roll.get(e.id) %}
+<tr><td class="name">{{ e.emp_code }} {{ e.name }}</td>
+{% for d in range(1, dim + 1) %}{% set s = row.get(d) %}<td class="{{ 'd-' ~ s if s }}">{{ s or '' }}</td>{% endfor %}
+<td class="n"><b>{{ '%g' % r.present_days if r else '-' }}</b></td><td class="n">{{ '%g' % r.paid_holidays if r else '-' }}</td><td class="n">{{ '%g' % r.ot_hours if r else '-' }}</td></tr>
+{% else %}<tr><td colspan="{{ dim + 4 }}" class="empty">No active employees.</td></tr>{% endfor %}</tbody></table></div>
+<p class="muted" style="font-size:12.5px">Applying writes Present = P + &frac12;&times;HD, Paid holidays = WO + H + L and the OT total. Employees with no marks this month are not touched.</p>
+{% endblock %}

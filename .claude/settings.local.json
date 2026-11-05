@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "PowerShell($p=\"C:\\\\Users\\\\VIKAS\\\\AppData\\\\Local\\\\Python\\\\pythoncore-3.14-64\\\\python.exe\"; & $p -m pip install flask reportlab 2>&1 | Select-Object -Last 3)",
-      "PowerShell(& \"C:\\\\Users\\\\VIKAS\\\\AppData\\\\Local\\\\Python\\\\pythoncore-3.14-64\\\\python.exe\" \"C:\\\\Users\\\\VIKAS\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\4d0dd0346324bc93\\\\ca84c306-cfe2-4f6f-9854-42593db73450\\\\scratchpad\\\\smoke.py\" 2>&1 | Select-Object -Last 45; Test-Path C:\\\\Users\\\\VIKAS\\\\HRMS_VK\\\\hrms.db)"
-    ]
-  }
-}

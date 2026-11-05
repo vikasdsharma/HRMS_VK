@@ -1,0 +1,21 @@
+{% extends "base.html" %}{% block title %}Leave reports{% endblock %}{% block body %}
+<div class="page-head"><div><h1>Leave reports</h1><p>Balances, the leave register and the value of leave that could be encashed.</p></div><span class="sp"></span>
+  <a class="btn secondary" href="{{ url_for('leave_balances_xlsx') }}">Balances (Excel)</a>
+  <a class="btn secondary" href="{{ url_for('attendance_muster_xlsx') }}">Attendance register this month (Excel)</a></div>
+
+<div class="card"><h2 style="margin-top:0">Leave liability <small class="muted">(encashable leave, as on {{ as_on.strftime('%d %b %Y') }})</small></h2>
+  <form method="get" class="row"><div><label for="ao">As on</label><input id="ao" type="date" name="as_on" value="{{ as_on.isoformat() }}"></div><button class="btn secondary">Show</button>
+    <a class="btn secondary" href="{{ url_for('leave_liability_xlsx', as_on=as_on.isoformat()) }}">Excel</a></form>
+  <div class="stats" style="margin-top:12px"><div class="stat"><div class="l">Total liability</div><div class="v">&#8377;{{ '{:,}'.format(liab.total) }}</div><div class="s">balance &times; daily Basic + DA</div></div></div>
+  <div class="tablewrap" style="max-height:320px"><table><thead><tr><th>Employee</th><th>Leave</th><th class="n">Days</th><th class="n">Daily wage</th><th class="n">Amount</th></tr></thead><tbody>
+  {% for r in liab.rows %}<tr><td>{{ r.emp.emp_code }} {{ r.emp.name }}</td><td>{{ r.lt.name }}</td><td class="n">{{ '%g' % r.days }}</td><td class="n">{{ '{:,.2f}'.format(r.daily) }}</td><td class="n"><b>{{ '{:,}'.format(r.amount) }}</b></td></tr>
+  {% else %}<tr><td colspan="5" class="empty">No encashable leave balances.</td></tr>{% endfor %}</tbody></table></div>
+  <p class="muted" style="font-size:12.5px;margin-bottom:0">A provisioning estimate only. Whether and how leave is encashed (and its tax treatment) depends on your policy and the law; the system does not post encashment to payroll.</p></div>
+
+<div class="card"><h2 style="margin-top:0">Leave register</h2>
+  <form method="get" class="row"><div><label for="df">From</label><input id="df" type="date" name="from" value="{{ d1.isoformat() }}"></div><div><label for="dt">To</label><input id="dt" type="date" name="to" value="{{ d2.isoformat() }}"></div>
+    <button class="btn secondary">Show</button><a class="btn secondary" href="{{ url_for('leave_register_xlsx', **{'from': d1.isoformat(), 'to': d2.isoformat()}) }}">Excel</a></form>
+  <div class="tablewrap" style="margin-top:12px;max-height:420px"><table><thead><tr><th>Date</th><th>Employee</th><th>Leave</th><th>Kind</th><th class="n">Days</th><th>Note</th></tr></thead><tbody>
+  {% for r in ledger %}<tr><td class="nowrap">{{ r.on_date.strftime('%d %b %Y') }}</td><td>{{ r.employee.emp_code }} {{ r.employee.name }}</td><td>{{ r.leave_type.code }}</td><td><code>{{ r.kind }}</code></td><td class="n"><b>{{ '%+g' % r.days }}</b></td><td>{{ r.note or '' }}</td></tr>
+  {% else %}<tr><td colspan="6" class="empty">Nothing in this period.</td></tr>{% endfor %}</tbody></table></div></div>
+{% endblock %}

@@ -1,19 +1,49 @@
-{% extends "base.html" %}{% block body %}
-<h1>Payroll - {{ month_label(month) }}</h1>
-<div class="card row">
-<form method="get" class="row" style="margin:0"><div><label>Month</label><input type="month" name="month" value="{{ month }}"></div><button class="btn sec">View</button></form>
-<form method="post" action="{{ url_for('payroll_generate') }}" style="margin:0"><input type="hidden" name="month" value="{{ month }}">
-<button class="btn" {{ 'disabled' if not att_count }}>Generate / re-generate payslips ({{ att_count }} with attendance)</button></form>
-{% if slips %}<a class="btn sec" href="{{ url_for('payslips_bulk_pdf', month=month) }}">All payslips (1 PDF)</a>
-<a class="btn sec" href="{{ url_for('payslips_zip', month=month) }}">Individual PDFs (ZIP)</a>
-<a class="btn sec" href="{{ url_for('salary_register', month=month) }}">Salary register (Excel)</a>{% endif %}
+{% extends "base.html" %}{% block title %}Payroll{% endblock %}{% block body %}
+{% from "_macros.html" import csrf, alerts %}
+<div class="page-head"><div><h1>Payroll &mdash; {{ month_label(month) }}
+  {% if final %}<span class="badge info">Finalised</span>{% elif slips %}<span class="badge warn">Draft</span>{% endif %}</h1>
+  <p>{% if final %}Finalised by {{ run.finalized_by }} on {{ run.finalized_at.strftime('%d-%b-%Y %H:%M') }}. Attendance and payslips for this month are locked.
+     {% elif slips %}Review the warnings, then finalise to lock the month.{% else %}Upload attendance, then generate payslips.{% endif %}</p></div></div>
+
+<div class="toolbar">
+  <form method="get"><div><label for="m">Month</label><select id="m" name="month" data-autosubmit style="width:230px">
+    {% for m in month_opts %}<option value="{{ m }}" {{ 'selected' if m == month }}>{{ month_label(m) }}</option>{% endfor %}
+    {% if month not in month_opts %}<option value="{{ month }}" selected>{{ month_label(month) }}</option>{% endif %}</select></div></form>
+  <span class="sp"></span>
+  {% if not final %}
+  <form method="post" action="{{ url_for('payroll_generate') }}">{{ csrf() }}<input type="hidden" name="month" value="{{ month }}">
+    <button class="btn {{ 'secondary' if slips and not stale }}" {{ 'disabled' if not att_count }}>{{ 'Re-generate' if slips else 'Generate' }} payslips ({{ att_count }} with attendance)</button></form>
+  {% if slips and is_admin %}
+  <form method="post" action="{{ url_for('payroll_finalize') }}" data-confirm="Finalise {{ month_label(month) }}? Attendance and payslips for the month will be locked.">{{ csrf() }}<input type="hidden" name="month" value="{{ month }}">
+    <button class="btn" {{ 'disabled' if stale }}>Finalise month</button></form>{% endif %}
+  {% elif is_admin %}
+  <form method="post" action="{{ url_for('payroll_unlock') }}" class="row" data-confirm="Unlock {{ month_label(month) }} for correction? This is recorded in the audit log.">{{ csrf() }}<input type="hidden" name="month" value="{{ month }}">
+    <div><label for="reason">Reason to unlock</label><input id="reason" name="reason" minlength="5" required placeholder="e.g. wrong OT hours for E017" style="width:260px"></div>
+    <button class="btn danger">Unlock</button></form>{% endif %}
 </div>
-{% for w in warnings %}<div class="warn">{{ w }}</div>{% endfor %}
-{% if T %}<div class="grid" style="margin-bottom:14px"><div class="stat">Payslips<b>{{ T.slips }}</b></div><div class="stat">Total gross<b>{{ '{:,}'.format(T.gross) }}</b></div>
-<div class="stat">Total net pay<b>{{ '{:,}'.format(T.net) }}</b></div></div>{% endif %}
-<div class="scroll"><table><tr><th>Code</th><th>Name</th><th>Category</th><th class="n">Paid days</th><th class="n">Gross</th><th class="n">PF</th><th class="n">ESI</th><th class="n">Ded.</th><th class="n">Net</th><th></th></tr>
-{% for s in slips %}<tr><td>{{ s.employee.emp_code }}</td><td>{{ s.employee.name }}</td><td>{{ s.category_name }}</td><td class="n">{{ '%g' % s.paid_days }}</td>
+
+{{ alerts(stale, 'err', 'Payslips are out of date - re-generate before finalising') }}
+{{ alerts(warnings, 'warn', 'Worth checking') }}
+
+{% if T %}
+<div class="stats">
+  <div class="stat"><div class="l">Payslips</div><div class="v">{{ T.slips }}</div></div>
+  <div class="stat"><div class="l">Total gross</div><div class="v">&#8377;{{ '{:,}'.format(T.gross) }}</div></div>
+  <div class="stat"><div class="l">Total net pay</div><div class="v">&#8377;{{ '{:,}'.format(T.net) }}</div></div>
+  <div class="stat"><div class="l">PF + ESI payable</div><div class="v">&#8377;{{ '{:,}'.format(T.pf_total + T.esi_total) }}</div></div>
+</div>
+<div class="toolbar">
+  <a class="btn secondary" href="{{ url_for('payslips_bulk_pdf', month=month) }}">All payslips (1 PDF)</a>
+  <a class="btn secondary" href="{{ url_for('payslips_zip', month=month) }}">Individual PDFs (ZIP)</a>
+  {% if is_admin %}<a class="btn secondary" href="{{ url_for('salary_register', month=month) }}">Salary register (Excel)</a>{% endif %}
+  <a class="btn ghost" href="{{ url_for('compliance_page', month=month) }}">EPF / ESI files &rarr;</a>
+</div>
+{% endif %}
+
+<div class="tablewrap"><table>
+<thead><tr><th>Code</th><th>Name</th><th>Category</th><th class="n">Paid days</th><th class="n">Gross</th><th class="n">PF</th><th class="n">ESI</th><th class="n">Deductions</th><th class="n">Net</th><th></th></tr></thead><tbody>
+{% for s in slips %}<tr><td>{{ s.employee.emp_code }}</td><td><a href="{{ url_for('employee_detail', eid=s.employee.id) }}">{{ s.employee.name }}</a></td><td>{{ s.category_name }}</td><td class="n">{{ '%g' % s.paid_days }}</td>
 <td class="n">{{ s.gross }}</td><td class="n">{{ s.pf_ee }}</td><td class="n">{{ s.esi_ee }}</td><td class="n">{{ s.total_deduction|round(0)|int }}</td><td class="n"><b>{{ s.net }}</b></td>
 <td><a href="{{ url_for('payslip_pdf', sid=s.id) }}">PDF</a></td></tr>
-{% else %}<tr><td colspan="10" class="muted">No payslips yet. Upload attendance, then generate.</td></tr>{% endfor %}</table></div>
+{% else %}<tr><td colspan="10" class="empty">No payslips yet. <a href="{{ url_for('attendance') }}">Upload attendance</a>, then generate.</td></tr>{% endfor %}</tbody></table></div>
 {% endblock %}

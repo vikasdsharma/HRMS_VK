@@ -1,0 +1,41 @@
+{% extends "base.html" %}{% block title %}{{ e.name }}{% endblock %}{% block body %}
+<div class="page-head"><div><h1>{{ e.name }}</h1><p>{{ e.emp_code }} &middot; {{ e.designation or 'No designation' }}{% if e.department %} &middot; {{ e.department }}{% endif %}
+  &middot; <span class="badge {{ 'ok' if e.status == 'Active' else 'err' }}">{{ e.status }}</span></p></div><span class="sp"></span>
+  <a class="btn" href="{{ url_for('employee_form', eid=e.id) }}">Edit</a>
+  {% if is_admin %}<a class="btn secondary" href="{{ url_for('leave_employee', eid=e.id) }}">Leave</a>
+  <a class="btn secondary" href="{{ url_for('attendance_employee', eid=e.id) }}">Attendance calendar</a>
+  <a class="btn secondary" href="{{ url_for('portal_access', q=e.emp_code) }}">Portal access</a>{% endif %}
+  <a class="btn secondary" href="{{ url_for('employees') }}">Back to list</a></div>
+
+<div class="grid g2">
+  <div class="card"><h2>Details</h2>
+    <table><tbody>
+      <tr><th>Father / husband</th><td>{{ e.father_name or '-' }}</td></tr>
+      <tr><th>Gender</th><td>{{ e.gender or '-' }}</td></tr>
+      <tr><th>Date of birth</th><td>{{ e.dob.strftime('%d-%b-%Y') if e.dob else '-' }}</td></tr>
+      <tr><th>Date of joining</th><td>{{ e.doj.strftime('%d-%b-%Y') if e.doj else '-' }}</td></tr>
+      {% if e.dol %}<tr><th>Date of leaving</th><td>{{ e.dol.strftime('%d-%b-%Y') }}</td></tr>{% endif %}
+      <tr><th>Mobile</th><td>{{ e.mobile or '-' }}</td></tr>
+      <tr><th>Address</th><td>{{ e.address or '-' }}</td></tr>
+    </tbody></table></div>
+  <div class="card"><h2>Statutory &amp; bank
+      {% if is_admin %}<span style="float:right">{% if reveal %}<a class="btn ghost sm" href="{{ url_for('employee_detail', eid=e.id) }}">Hide</a>{% else %}<a class="btn ghost sm" href="{{ url_for('employee_detail', eid=e.id, reveal=1) }}">Show hidden values</a>{% endif %}</span>{% endif %}</h2>
+    <table><tbody>
+      {% for label, v in (('Aadhaar', e.aadhaar), ('PAN', e.pan), ('UAN', e.uan), ('ESIC IP', e.esic_no), ('Bank account', e.bank_acct)) %}
+      <tr><th>{{ label }}</th><td class="nowrap">{{ (v or '-') if reveal else (v|mask) }}</td></tr>{% endfor %}
+      <tr><th>Bank / IFSC</th><td>{{ e.bank_name or '-' }} {{ e.ifsc or '' }}</td></tr>
+      <tr><th>Salary category</th><td>{{ e.category.name if e.category else '-' }}{% if rate %} &middot; &#8377;{{ (rate.basic + rate.da + rate.hra + rate.other)|round(2) }}/day{% endif %}
+        {% if e.basic_override_day %}<br><span class="hint">personal basic &#8377;{{ e.basic_override_day }}/day</span>{% endif %}</td></tr>
+      <tr><th>EPS</th><td>{{ 'Exempt' if e.eps_exempt else 'Applicable (stops automatically at age 58)' }}</td></tr>
+    </tbody></table></div>
+</div>
+
+<div class="card"><h2>Recent payslips</h2>
+  <div class="tablewrap"><table><thead><tr><th>Month</th><th class="n">Paid days</th><th class="n">Gross</th><th class="n">PF</th><th class="n">ESI</th><th class="n">Net</th><th></th></tr></thead><tbody>
+  {% for s in slips %}<tr><td>{{ month_label(s.month) }}</td><td class="n">{{ '%g' % s.paid_days }}</td><td class="n">{{ s.gross }}</td><td class="n">{{ s.pf_ee }}</td><td class="n">{{ s.esi_ee }}</td><td class="n"><b>{{ s.net }}</b></td><td><a href="{{ url_for('payslip_pdf', sid=s.id) }}">PDF</a></td></tr>
+  {% else %}<tr><td colspan="7" class="empty">No payslips yet.</td></tr>{% endfor %}</tbody></table></div></div>
+
+{% if events %}<div class="card"><h2>Activity</h2>
+  <div class="tablewrap"><table><thead><tr><th>When</th><th>Who</th><th>What</th><th>Details</th></tr></thead><tbody>
+  {% for r in events %}<tr><td class="nowrap">{{ r.at.strftime('%d-%b-%Y %H:%M') }}</td><td>{{ r.username or '-' }}</td><td><code>{{ r.action }}</code></td><td>{{ r.detail or '' }}</td></tr>{% endfor %}</tbody></table></div></div>{% endif %}
+{% endblock %}

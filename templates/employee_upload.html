@@ -1,17 +1,35 @@
-{% extends "base.html" %}{% block body %}
-<h1>Bulk employee upload (Excel)</h1>
+{% extends "base.html" %}{% block title %}Upload employees{% endblock %}{% block body %}
+{% from "_macros.html" import csrf %}
+<div class="page-head"><div><h1>Upload employees</h1><p>Create or update many employees from one Excel file.</p></div></div>
+
 <div class="card">
-<p>1. <a class="btn sec" href="{{ url_for('employee_template') }}">Download Excel template</a></p>
-<p>2. Fill one row per employee. <b>Salary Category</b> must match a name in the <i>Categories</i> sheet. Existing Employee Codes are <b>updated</b> (blank cells are left unchanged); new codes are created.</p>
-<p>3. Upload. If any row has an error, <b>nothing is saved</b> and each error is listed so you can fix and re-upload.</p>
-<form method="post" enctype="multipart/form-data" class="row"><input type="file" name="file" accept=".xlsx,.xlsm" required style="width:340px"><button class="btn">Upload</button></form>
+  <ol style="margin-top:0;line-height:1.8">
+    <li><a class="btn secondary sm" href="{{ url_for('employee_template') }}">Download the Excel template</a></li>
+    <li>Fill one row per employee. <b>Salary Category</b> must match a name in the <i>Categories</i> sheet. Existing Employee Codes are <b>updated</b> (blank cells are left unchanged); new codes are created.</li>
+    <li>Upload it. If any row has an error, <b>nothing is saved</b>: download the report, fix the red rows and upload the same file again.</li>
+  </ol>
+  <form method="post" enctype="multipart/form-data" class="row">{{ csrf() }}
+    <div><label for="file">Excel file (.xlsx)</label><input id="file" type="file" name="file" accept=".xlsx,.xlsm" required style="width:340px"></div>
+    <button class="btn">Upload</button></form>
 </div>
+
 {% if result %}
   {% if result.errors %}
-    <div class="flash err"><b>Upload rejected - {{ result.errors|length }} row(s) with errors. No data was saved.</b></div>
-    <table><tr><th style="width:80px">Row</th><th>Problem</th></tr>{% for r, m in result.errors %}<tr><td>{{ r }}</td><td>{{ m }}</td></tr>{% endfor %}</table>
+    <div class="alert err" role="alert"><div><b>Upload rejected &mdash; {{ result.errors|length }} row(s) with errors. Nothing was saved.</b><br>Use <i>Download report</i> in the history below: it marks every row with a status, error codes and messages.</div></div>
+    <div class="tablewrap" style="margin-bottom:16px"><table><thead><tr><th style="width:80px">Row</th><th>Problem</th></tr></thead><tbody>
+      {% for r, m in result.errors[:50] %}<tr><td>{{ r }}</td><td>{{ m }}</td></tr>{% endfor %}
+      {% if result.errors|length > 50 %}<tr><td colspan="2" class="muted">&hellip; and {{ result.errors|length - 50 }} more (see the report)</td></tr>{% endif %}</tbody></table></div>
   {% else %}
-    <div class="flash ok">Done: {{ result.created }} created, {{ result.updated }} updated.</div>
+    <div class="alert ok" role="status">Done: {{ result.created }} created, {{ result.updated }} updated.</div>
   {% endif %}
 {% endif %}
+
+<h2>Upload history</h2>
+<div class="tablewrap"><table><thead><tr><th>Uploaded on</th><th>File name</th><th>By</th><th class="n">Created</th><th class="n">Updated</th><th>Result</th><th>Report</th></tr></thead><tbody>
+{% for u in history %}<tr><td class="nowrap">{{ u.uploaded_at.strftime('%d-%b-%Y %H:%M') if u.uploaded_at else '-' }}</td><td>{{ u.filename }}</td><td>{{ u.uploaded_by }}</td>
+<td class="n">{{ u.created }}</td><td class="n">{{ u.updated }}</td>
+<td><span class="badge {{ 'err' if u.status == 'Rejected' else 'ok' }}">{{ u.status }}</span>{% if u.details %}<br><small class="muted">{{ u.details }}</small>{% endif %}</td>
+<td>{% if u.row_results is not none and u.file_data %}<a class="btn secondary sm" href="{{ url_for('employee_upload_report', uid=u.id) }}">Download report</a>{% else %}<span class="muted">-</span>{% endif %}</td></tr>
+{% else %}<tr><td colspan="7" class="empty">No uploads yet.</td></tr>{% endfor %}</tbody></table></div>
+<p class="muted" style="font-size:12.5px">Newest first, latest 100 uploads, including rejected files. The report is your sheet with <b>Status</b>, <b>Error Code</b> and <b>Error Message</b> columns added; fix the red rows and upload that same file again (the extra columns are ignored). Stored copies of old files are removed automatically after the retention period.</p>
 {% endblock %}

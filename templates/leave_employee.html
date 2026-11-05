@@ -1,0 +1,79 @@
+{% extends "base.html" %}{% block title %}Leave &middot; {{ e.name }}{% endblock %}{% block body %}
+{% from "_macros.html" import csrf %}
+<div class="page-head"><div><h1>Leave &mdash; {{ e.name }}</h1>
+  <p>{{ e.emp_code }}{% if e.doj %} &middot; joined {{ e.doj.strftime('%d %b %Y') }}{% else %} &middot; <span class="badge err">no joining date: add it in the employee record before leave can accrue</span>{% endif %}
+  &middot; policy: <b>{{ policy.name if policy else 'none' }}</b></p></div><span class="sp"></span>
+  <a class="btn secondary" href="{{ url_for('attendance_employee', eid=e.id) }}">Attendance calendar</a>
+  <a class="btn secondary" href="{{ url_for('employee_detail', eid=e.id) }}">Employee profile</a></div>
+
+<div class="tablewrap" style="margin-bottom:16px"><table>
+<thead><tr><th>Leave type</th><th class="n">Balance</th><th class="n">Pending</th><th class="n">Available</th><th>Yearly quota</th><th>Credit</th><th>Carry-forward</th><th class="n">Ceiling</th></tr></thead><tbody>
+{% for i in info if i.lt.uses_balance %}<tr><td><b>{{ i.lt.name }}</b></td><td class="n"><b>{{ '%g' % i.balance }}</b></td><td class="n">{{ '%g' % i.pending }}</td><td class="n">{{ '%g' % (i.balance - i.pending) }}</td>
+{% if i.rule %}<td>{{ '%g' % i.rule.quota }}{% if i.rule.overridden %} <span class="badge info">set for this employee</span>{% endif %}</td>
+<td>{{ {'yearly': 'Yearly', 'monthly': 'Monthly', 'per_days_worked': '1 per ' ~ ('%g' % i.rule.accrual_days) ~ ' days worked', 'manual': 'Manual'}[i.rule.accrual] }}{% if i.rule.wait_months %}, after {{ i.rule.wait_months }} mo{% endif %}</td>
+<td>{{ {'none': 'None', 'all': 'All', 'limit': 'Up to ' ~ ('%g' % i.rule.carry_limit)}[i.rule.carry_mode] }}</td><td class="n">{{ '%g' % i.rule.max_balance if i.rule.max_balance is not none else '-' }}</td>
+{% else %}<td colspan="4" class="muted">no rule in this policy</td>{% endif %}</tr>{% endfor %}</tbody></table></div>
+
+<div class="grid g2">
+<div class="card"><h2>Apply leave for {{ e.name.split()[0] }}</h2>
+  <form method="post" action="{{ url_for('leave_apply_for', eid=e.id) }}">{{ csrf() }}
+    <div class="form">
+      <div class="field"><label for="a_t">Leave type</label><select id="a_t" name="leave_type_id">{% for t in lts %}<option value="{{ t.id }}">{{ t.name }}</option>{% endfor %}</select></div>
+      <div class="field"><label for="a_f">From</label><input id="a_f" type="date" name="from_date" required></div>
+      <div class="field"><label for="a_to">To <span class="hint">same day if one day</span></label><input id="a_to" type="date" name="to_date"></div>
+    </div>
+    <p><label class="check"><input type="checkbox" name="from_half"> first day is a half day</label> &nbsp; <label class="check"><input type="checkbox" name="to_half"> last day is a half day</label> &nbsp;
+       <label class="check"><input type="checkbox" name="doc"> medical certificate provided</label></p>
+    <div class="field"><label for="a_r">Reason</label><input id="a_r" name="reason" maxlength="200"></div>
+    <p style="margin-bottom:0"><label class="check"><input type="checkbox" name="approve_now" checked> Approve immediately</label></p>
+    <p><button class="btn">Record leave</button></p></form></div>
+
+<div class="card"><h2>Adjust balance</h2>
+  <form method="post" action="{{ url_for('leave_adjust', eid=e.id) }}">{{ csrf() }}
+    <div class="form">
+      <div class="field"><label for="j_t">Leave type</label><select id="j_t" name="leave_type_id">{% for t in lts if t.uses_balance %}<option value="{{ t.id }}">{{ t.name }}</option>{% endfor %}</select></div>
+      <div class="field"><label for="j_d">Days <span class="hint">+ add, &minus; remove (0.5 steps)</span></label><input id="j_d" type="number" step="0.5" name="days" required></div>
+      <div class="field"><label for="j_k">Kind</label><select id="j_k" name="kind"><option value="adjustment">Correction</option><option value="opening">Opening balance (when starting)</option></select></div>
+    </div>
+    <div class="field" style="margin-top:12px"><label for="j_r">Reason (required, recorded)</label><input id="j_r" name="reason" required maxlength="200"></div>
+    <p style="margin-bottom:0"><button class="btn secondary" data-confirm="Change this employee's leave balance?">Save adjustment</button></p></form></div>
+
+<div class="card"><h2>Grant comp off</h2>
+  <form method="post" action="{{ url_for('leave_comp_off', eid=e.id) }}">{{ csrf() }}
+    <div class="form">
+      <div class="field"><label for="c_w">Date worked</label><input id="c_w" type="date" name="worked_on" max="{{ today.isoformat() }}" required></div>
+      <div class="field"><label for="c_d">Days</label><input id="c_d" type="number" name="days" min="0.5" step="0.5" value="1" required></div>
+      <div class="field"><label for="c_e">Valid for (days)</label><input id="c_e" type="number" name="expiry_days" min="1" value="{{ default_expiry }}"></div>
+    </div>
+    <div class="field" style="margin-top:12px"><label for="c_r">Reason</label><input id="c_r" name="reason" required maxlength="200" placeholder="e.g. worked on a Sunday for dispatch"></div>
+    <p style="margin-bottom:0"><button class="btn secondary">Grant comp off</button></p></form>
+  {% if grants %}<table style="margin-top:10px"><thead><tr><th>Worked</th><th class="n">Days</th><th>Expires</th></tr></thead><tbody>
+    {% for g in grants %}<tr><td>{{ g.worked_on.strftime('%d %b %Y') }}</td><td class="n">{{ '%g' % g.days }}</td><td>{{ g.expires_on.strftime('%d %b %Y') }}</td></tr>{% endfor %}</tbody></table>{% endif %}</div>
+
+<div class="card"><h2>Fixed quota for this employee</h2>
+  <p class="muted" style="margin-top:0">Replaces the policy's yearly quota and/or ceiling for this person only. Leave both boxes empty to go back to the policy.</p>
+  <form method="post" action="{{ url_for('leave_override', eid=e.id) }}">{{ csrf() }}
+    <div class="form">
+      <div class="field"><label for="o_t">Leave type</label><select id="o_t" name="leave_type_id">{% for t in lts if t.uses_balance %}<option value="{{ t.id }}">{{ t.name }}</option>{% endfor %}</select></div>
+      <div class="field"><label for="o_q">Days per year</label><input id="o_q" type="number" name="quota" min="0" max="366" step="0.5"></div>
+      <div class="field"><label for="o_m">Ceiling (max balance)</label><input id="o_m" type="number" name="max_balance" min="0" max="1000" step="0.5"></div>
+    </div>
+    <p style="margin-bottom:0"><button class="btn secondary">Save</button></p></form></div>
+</div>
+
+<h2>Applications</h2>
+<div class="tablewrap"><table><thead><tr><th>Type</th><th>Dates</th><th class="n">Days</th><th>Status</th><th>Reason</th><th></th></tr></thead><tbody>
+{% for a in apps %}<tr><td>{{ a.leave_type.name }}</td><td class="nowrap">{{ a.from_date.strftime('%d %b %Y') }}{% if a.to_date != a.from_date %} &ndash; {{ a.to_date.strftime('%d %b %Y') }}{% endif %}</td><td class="n">{{ '%g' % a.days }}</td>
+<td><span class="badge {{ {'pending': 'warn', 'approved': 'ok', 'rejected': 'err', 'cancelled': ''}[a.status] }}">{{ a.status }}</span></td><td>{{ a.reason or '' }}</td>
+<td class="nowrap">{% if a.status == 'pending' %}
+  <form method="post" action="{{ url_for('leave_decide', aid=a.id, action='approve') }}" class="inline">{{ csrf() }}<button class="btn sm">Approve</button></form>
+  <form method="post" action="{{ url_for('leave_decide', aid=a.id, action='reject') }}" class="inline">{{ csrf() }}<button class="btn secondary sm">Reject</button></form>{% endif %}
+  {% if a.status in ('pending', 'approved') %}<form method="post" action="{{ url_for('leave_decide', aid=a.id, action='cancel') }}" class="inline" data-confirm="Cancel this leave? Approved days are given back.">{{ csrf() }}<button class="btn danger sm">Cancel</button></form>{% endif %}</td></tr>
+{% else %}<tr><td colspan="6" class="empty">No applications yet.</td></tr>{% endfor %}</tbody></table></div>
+
+<h2>Ledger <small class="muted">(how each balance arose)</small></h2>
+<form method="get" class="toolbar"><div><label for="ty">Leave type</label><select id="ty" name="type" data-autosubmit style="width:220px"><option value="">All</option>{% for t in lts %}<option value="{{ t.id }}" {{ 'selected' if type_filter == t.id }}>{{ t.name }}</option>{% endfor %}</select></div></form>
+<div class="tablewrap"><table><thead><tr><th>Date</th><th>Type</th><th>Kind</th><th class="n">Days</th><th>Note</th><th>By</th></tr></thead><tbody>
+{% for r in ledger %}<tr><td class="nowrap">{{ r.on_date.strftime('%d %b %Y') }}</td><td>{{ r.leave_type.code }}</td><td><code>{{ r.kind }}</code></td><td class="n"><b>{{ '%+g' % r.days }}</b></td><td>{{ r.note or '' }}</td><td>{{ r.created_by or '' }}</td></tr>
+{% else %}<tr><td colspan="6" class="empty">Nothing in the ledger yet. Run <a href="{{ url_for('leave_run') }}">Accrual</a> or enter an opening balance.</td></tr>{% endfor %}</tbody></table></div>
+{% endblock %}

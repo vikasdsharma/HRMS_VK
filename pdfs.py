@@ -45,9 +45,9 @@ def _payslip_flow(s, S):
            ("Other Deduction", s.other_deduction)]
     rows = [["Earnings", "Amount (Rs)", "Deductions", "Amount (Rs)"]]
     for i in range(max(len(earn), len(ded))):
-        l = earn[i] if i < len(earn) else ("", None)
+        left = earn[i] if i < len(earn) else ("", None)
         r = ded[i] if i < len(ded) else ("", None)
-        rows.append([l[0], inr(l[1]) if l[1] is not None else "", r[0], inr(r[1]) if r[1] is not None else ""])
+        rows.append([left[0], inr(left[1]) if left[1] is not None else "", r[0], inr(r[1]) if r[1] is not None else ""])
     rows.append(["Gross Earnings", inr(s.gross), "Total Deductions", inr(s.total_deduction)])
     rows.append(["", "", "NET PAY", inr(s.net)])
     t2 = Table(rows, colWidths=[55 * mm, 32 * mm, 55 * mm, 28 * mm])

@@ -1,0 +1,12 @@
+line-length = 120
+extend-exclude = [".venv", "migrations/versions"]
+
+[lint]
+select = ["E", "F", "W", "B", "UP"]
+ignore = ["E501", "UP007", "UP006", "B008", "B904", "UP035", "UP032", "UP031"]
+
+[lint.per-file-ignores]
+"views/*.py" = ["F403", "F405", "F401"]   # views use `from common import *` on purpose
+"tests/*.py" = ["E402", "F401", "E702"]
+"manage.py" = ["E402", "E702", "E701"]
+"app.py" = ["E402"]

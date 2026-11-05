@@ -1,0 +1,28 @@
+{% extends "base.html" %}{% block title %}Daily attendance{% endblock %}{% block body %}
+{% from "_macros.html" import csrf %}
+<div class="page-head"><div><h1>Daily attendance</h1><p>Mark each worker for one day. The month is rolled up into monthly attendance when you are ready.</p></div><span class="sp"></span>
+  <a class="btn secondary" href="{{ url_for('attendance_daily_month', month=month) }}">Month view &amp; roll-up</a></div>
+
+<form method="get" class="toolbar">
+  <div><label for="date">Date</label><input id="date" type="date" name="date" value="{{ day.isoformat() }}" max="{{ today.isoformat() }}" data-autosubmit></div>
+  <a class="btn secondary" href="{{ url_for('attendance_daily', date=(day - timedelta(days=1)).isoformat()) }}">&larr; Previous day</a>
+  {% if day < today %}<a class="btn secondary" href="{{ url_for('attendance_daily', date=(day + timedelta(days=1)).isoformat()) }}">Next day &rarr;</a>{% endif %}
+  <span class="sp"></span>
+  {% if not locked %}<a class="btn ghost" href="{{ url_for('attendance_daily', date=day.isoformat(), fill='P') }}">Pre-fill unmarked as Present</a>{% endif %}
+</form>
+{% if locked %}<div class="alert info">{{ month_label(month) }} payroll is finalised &mdash; daily attendance is locked.</div>{% endif %}
+
+<form method="post" action="{{ url_for('attendance_daily', date=day.isoformat()) }}">{{ csrf() }}
+<div class="tablewrap"><table>
+<thead><tr><th>Code</th><th>Name</th><th style="width:170px">Status</th><th style="width:120px">OT hours</th></tr></thead><tbody>
+{% for e in emps %}{% set m = marks.get(e.id) %}{% set svc = in_service(e, day) %}{% set on_leave = m and m.source == 'leave' %}
+{% set cur = m.status if m else (calendar_status(e) if svc and not prefill else (prefill if svc else '')) %}
+<tr><td class="nowrap">{{ e.emp_code }}</td><td>{{ e.name }}{% if not svc %} <span class="badge">{{ 'not joined yet' if e.doj and day < e.doj else 'left' }}</span>{% endif %}</td>
+<td>{% if on_leave %}<span class="badge info">{{ statuses_all.get(m.status) }} (approved leave)</span>
+  {% else %}<select name="s_{{ e.id }}" aria-label="Status for {{ e.name }}" {{ 'disabled' if locked or not svc }}><option value="">-</option>{% for k, v in statuses.items() %}<option value="{{ k }}" {{ 'selected' if cur == k }}>{{ k }} &middot; {{ v }}</option>{% endfor %}</select>{% endif %}</td>
+<td>{% if not on_leave %}<input type="number" name="o_{{ e.id }}" min="0" max="16" step="0.5" value="{{ '%g' % m.ot_hours if m and m.ot_hours else '' }}" aria-label="Overtime hours for {{ e.name }}" {{ 'disabled' if locked or not svc }}>{% endif %}</td></tr>
+{% else %}<tr><td colspan="4" class="empty">No active employees.</td></tr>{% endfor %}</tbody></table></div>
+{% if emps and not locked %}<p><button class="btn">Save {{ day.strftime('%d %b %Y') }}</button> <span class="muted">Leave a status as "-" to clear it.</span></p>{% endif %}
+</form>
+<p class="muted" style="font-size:12.5px">P present &middot; HD half day (counts 0.5) &middot; A absent &middot; WO weekly off, H paid holiday, L paid leave (these three count as paid days).</p>
+{% endblock %}

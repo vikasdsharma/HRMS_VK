@@ -1,0 +1,10 @@
+{% extends "base.html" %}{% block title %}Bonus &amp; gratuity{% endblock %}{% block body %}
+<div class="page-head"><div><h1>Bonus &amp; gratuity</h1><p>Worksheets to support your calculation. Confirm thresholds and rules with your labour-law consultant.</p></div></div>
+<div class="grid g2">
+  <div class="card"><h2>Annual bonus</h2><p class="muted">Payment of Bonus worksheet from the payslips of a financial year (April to March).</p>
+    <p><a class="btn" href="{{ url_for('report_bonus', fy=fy) }}">Open bonus worksheet</a></p></div>
+  <div class="card"><h2>Gratuity</h2><p class="muted">Accrued gratuity for every active employee if they left on a chosen date; useful for provisioning.</p>
+    <p><a class="btn" href="{{ url_for('report_gratuity', as_on=as_on.isoformat()) }}">Open gratuity estimate</a></p></div>
+</div>
+<p class="muted">Rates and ceilings are in <a href="{{ url_for('settings') }}">Settings</a>.</p>
+{% endblock %}

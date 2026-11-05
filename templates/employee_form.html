@@ -1,31 +1,54 @@
-{% extends "base.html" %}{% block body %}
-<h1>{{ 'Edit' if editing else 'Add' }} employee</h1>
-<form method="post" class="card">
+{% extends "base.html" %}{% block title %}{{ 'Edit' if editing else 'Add' }} employee{% endblock %}
+{% from "_macros.html" import csrf, field %}
+{% macro sens(name, label, hint='') %}
+<div class="field{{ ' error' if ferrs.get(name) }}"><label for="f_{{ name }}">{{ label }} {% if hint %}<span class="hint">{{ hint }}</span>{% endif %}</label>
+<input id="f_{{ name }}" name="{{ name }}" value="{{ (emp[name] or '') if show_vals else '' }}" autocomplete="off"
+ {% if editing and stored and stored[name] and not reveal %}placeholder="{{ stored[name]|mask }}  (hidden - leave blank to keep)"{% endif %}
+ {% if ferrs.get(name) %}aria-invalid="true"{% endif %}>
+{% if ferrs.get(name) %}<div class="err" role="alert">{{ ferrs[name] }}</div>{% endif %}</div>
+{% endmacro %}
+{% block body %}
+<div class="page-head"><div><h1>{{ 'Edit employee' if editing else 'Add employee' }}</h1>{% if editing %}<p>{{ emp.emp_code }} &middot; {{ emp.name }}</p>{% endif %}</div></div>
+{% if editing %}<div class="alert info">
+{% if reveal %}ID numbers are <b>shown</b>. Emptying a box removes that number. <a href="{{ url_for('employee_form', eid=emp.id) }}">Hide values</a>
+{% else %}Aadhaar, PAN, UAN, ESIC and bank account numbers are hidden. Leave a box blank to keep its current value, or type a new number to replace it.
+  {% if is_admin %}<a href="{{ url_for('employee_form', eid=emp.id, reveal=1) }}">Show hidden values</a>{% endif %}{% endif %}</div>{% endif %}
+
+<form method="post" class="card" data-dirty-warn novalidate>{{ csrf() }}
+{% if reveal %}<input type="hidden" name="reveal" value="1">{% endif %}
+<h2>Identity</h2>
 <div class="form">
-  <div><label>Employee Code *</label><input name="emp_code" value="{{ emp.emp_code or '' }}" required></div>
-  <div><label>Name *</label><input name="name" value="{{ emp.name or '' }}" required></div>
-  <div><label>Father / Husband name</label><input name="father_name" value="{{ emp.father_name or '' }}"></div>
-  <div><label>Gender</label><select name="gender">{% for g in ['', 'M', 'F', 'O'] %}<option {{ 'selected' if emp.gender==g }}>{{ g }}</option>{% endfor %}</select></div>
-  <div><label>Date of birth <small class="hint">DD-MM-YYYY</small></label><input name="dob" value="{{ emp.dob.strftime('%d-%m-%Y') if emp.dob and emp.dob.strftime else (emp.dob or '') }}"></div>
-  <div><label>Date of joining</label><input name="doj" value="{{ emp.doj.strftime('%d-%m-%Y') if emp.doj and emp.doj.strftime else (emp.doj or '') }}"></div>
-  <div><label>Designation</label><input name="designation" value="{{ emp.designation or '' }}"></div>
-  <div><label>Department</label><input name="department" value="{{ emp.department or '' }}"></div>
-  <div><label>Mobile</label><input name="mobile" value="{{ emp.mobile or '' }}"></div>
-  <div><label>Aadhaar <small class="hint">12 digits</small></label><input name="aadhaar" value="{{ emp.aadhaar or '' }}"></div>
-  <div><label>PAN</label><input name="pan" value="{{ emp.pan or '' }}"></div>
-  <div><label>UAN <small class="hint">12 digits</small></label><input name="uan" value="{{ emp.uan or '' }}"></div>
-  <div><label>ESIC IP number</label><input name="esic_no" value="{{ emp.esic_no or '' }}"></div>
-  <div><label>Bank name</label><input name="bank_name" value="{{ emp.bank_name or '' }}"></div>
-  <div><label>Bank account no.</label><input name="bank_acct" value="{{ emp.bank_acct or '' }}"></div>
-  <div><label>IFSC</label><input name="ifsc" value="{{ emp.ifsc or '' }}"></div>
-  <div><label>Salary category *</label><select name="category_id" required>
-    <option value="">-- select --</option>
-    {% for c in cats_all %}<option value="{{ c.id }}" {{ 'selected' if emp.category_id==c.id }}>{{ c.name }} (Rs {{ c.total_day|round(2) }}/day)</option>{% endfor %}
-  </select></div>
-  <div><label>Personal daily basic <small class="hint">optional, overrides category basic</small></label><input name="basic_override_day" value="{{ emp.basic_override_day or '' }}"></div>
-  <div><label>Status</label><select name="status"><option {{ 'selected' if emp.status!='Left' }}>Active</option><option {{ 'selected' if emp.status=='Left' }}>Left</option></select></div>
+  {{ field('emp_code', 'Employee code', emp.emp_code, ferrs, required=True) }}
+  {{ field('name', 'Name', emp.name, ferrs, required=True) }}
+  {{ field('father_name', 'Father / husband name', emp.father_name, ferrs) }}
+  <div class="field"><label for="f_gender">Gender</label><select id="f_gender" name="gender">{% for g in ['', 'M', 'F', 'O'] %}<option {{ 'selected' if emp.gender == g }}>{{ g }}</option>{% endfor %}</select></div>
+  {{ field('dob', 'Date of birth', emp.dob.isoformat() if emp.dob else '', ferrs, type='date') }}
+  {{ field('mobile', 'Mobile', emp.mobile, ferrs, type='tel') }}
 </div>
-<div style="margin-top:12px"><label>Address</label><textarea name="address" rows="2">{{ emp.address or '' }}</textarea></div>
-<p><button class="btn">Save</button> <a class="btn sec" href="{{ url_for('employees') }}">Cancel</a></p>
+<h2>Employment</h2>
+<div class="form">
+  {{ field('doj', 'Date of joining', emp.doj.isoformat() if emp.doj else '', ferrs, type='date') }}
+  {{ field('designation', 'Designation', emp.designation, ferrs) }}
+  {{ field('department', 'Department', emp.department, ferrs) }}
+  <div class="field{{ ' error' if ferrs.get('category_id') }}"><label for="f_cat">Salary category <span aria-hidden="true">*</span></label>
+    <select id="f_cat" name="category_id" required><option value="">-- select --</option>
+      {% for c in cats_all %}<option value="{{ c.id }}" {{ 'selected' if emp.category_id == c.id }}>{{ c.name }} (&#8377;{{ c.total_day|round(2) }}/day)</option>{% endfor %}</select>
+    {% if ferrs.get('category_id') %}<div class="err" role="alert">{{ ferrs['category_id'] }}</div>{% endif %}</div>
+  {{ field('basic_override_day', 'Personal daily basic', emp.basic_override_day, ferrs, type='number', help='optional - replaces the category basic', attrs='step="0.01" min="0"') }}
+  <div class="field"><label for="f_status">Status</label><select id="f_status" name="status"><option {{ 'selected' if emp.status != 'Left' }}>Active</option><option {{ 'selected' if emp.status == 'Left' }}>Left</option></select></div>
+</div>
+<p><label class="check"><input type="checkbox" name="eps_exempt" {{ 'checked' if emp.eps_exempt }}> Not eligible for EPS (pension): the whole employer 12% goes to EPF. Members aged 58+ are handled automatically from the date of birth.</label></p>
+<h2>Statutory &amp; bank</h2>
+<div class="form">
+  {{ sens('aadhaar', 'Aadhaar', '12 digits') }}
+  {{ sens('pan', 'PAN') }}
+  {{ field('uan', 'UAN', (emp.uan if show_vals else ''), ferrs, help='12 digits', placeholder=(stored.uan|mask if editing and stored and stored.uan and not reveal else '')) }}
+  {{ field('esic_no', 'ESIC IP number', (emp.esic_no if show_vals else ''), ferrs, help='10 or 17 digits', placeholder=(stored.esic_no|mask if editing and stored and stored.esic_no and not reveal else '')) }}
+  {{ field('bank_name', 'Bank name', emp.bank_name, ferrs) }}
+  {{ sens('bank_acct', 'Bank account no.') }}
+  {{ field('ifsc', 'IFSC', emp.ifsc, ferrs) }}
+</div>
+<div class="field" style="margin-top:14px"><label for="f_address">Address</label><textarea id="f_address" name="address" rows="2">{{ emp.address or '' }}</textarea></div>
+<p style="margin-bottom:0"><button class="btn">Save</button> <a class="btn secondary" href="{{ url_for('employees') }}">Cancel</a></p>
 </form>
 {% endblock %}

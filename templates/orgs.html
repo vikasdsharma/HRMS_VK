@@ -1,0 +1,13 @@
+{% extends "base.html" %}{% block title %}Organizations{% endblock %}{% block body %}
+{% from "_macros.html" import csrf %}
+<div class="page-head"><div><h1>Organizations</h1><p>Each organization has its own employees, salary structures, attendance, payslips, settings and users. Pick one to work inside it.</p></div><span class="sp"></span>
+  <a class="btn" href="{{ url_for('org_new') }}">+ New organization</a></div>
+<div class="tablewrap"><table><thead><tr><th>Organization</th><th>Address</th><th class="n">Employees</th><th class="n">Users</th><th>Status</th><th></th></tr></thead><tbody>
+{% for o in rows %}<tr>
+<td><b>{{ o.name }}</b>{% if org and org.id == o.id %} <span class="badge info">current</span>{% endif %}</td>
+<td>{{ o.address or '-' }}</td><td class="n">{{ emp.get(o.id, 0) }}</td><td class="n">{{ usr.get(o.id, 0) }}</td>
+<td><span class="badge {{ 'ok' if o.is_active else 'err' }}">{{ 'Active' if o.is_active else 'Inactive' }}</span></td>
+<td class="nowrap"><form method="post" action="{{ url_for('org_switch', oid=o.id) }}" class="inline">{{ csrf() }}<button class="btn sm">Enter</button></form>
+<a class="btn ghost sm" href="{{ url_for('org_edit', oid=o.id) }}">Edit</a></td></tr>
+{% else %}<tr><td colspan="6" class="empty">No organizations yet &mdash; create the first one.</td></tr>{% endfor %}</tbody></table></div>
+{% endblock %}

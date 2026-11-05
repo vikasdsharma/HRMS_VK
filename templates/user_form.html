@@ -1,0 +1,12 @@
+{% extends "base.html" %}{% block title %}{{ 'Edit user' if u else 'Add user' }}{% endblock %}{% block body %}
+{% from "_macros.html" import csrf %}
+<div class="page-head"><div><h1>{{ 'Edit user' if u else 'Add user' }}</h1><p>{{ org.name }}</p></div></div>
+<form method="post" class="card" style="max-width:640px">{{ csrf() }}
+<div class="form">
+  <div class="field"><label for="un">Username {% if not u %}<span aria-hidden="true">*</span>{% endif %}</label>{% if u %}<input id="un" value="{{ u.username }}" disabled>{% else %}<input id="un" name="username" required autocomplete="off">{% endif %}</div>
+  <div class="field"><label for="role">Role</label><select id="role" name="role"><option value="user" {{ 'selected' if u and u.role == 'user' }}>User</option><option value="admin" {{ 'selected' if u and u.role == 'admin' }}>Admin</option></select></div>
+  <div class="field"><label for="pw">{{ 'New password (leave blank to keep)' if u else 'Temporary password' }} <span class="hint">min 10, letters + digits</span></label><input id="pw" type="password" name="password" minlength="10" {{ '' if u else 'required' }} autocomplete="new-password"></div>
+</div>
+<p><label class="check"><input type="checkbox" name="is_active" {{ 'checked' if not u or u.is_active }}> Account active</label></p>
+<p style="margin-bottom:0"><button class="btn">Save</button> <a class="btn secondary" href="{{ url_for('users') }}">Cancel</a></p></form>
+{% endblock %}

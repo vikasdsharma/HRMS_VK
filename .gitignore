@@ -1,0 +1,23 @@
+# Secrets and live data - NEVER commit these
+.env
+.secret_key
+data/
+*.db
+*.db-wal
+*.db-shm
+*.key
+*_backup.db
+backups/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+
+# Editors / local tooling
+.idea/
+.vscode/
+.claude/settings.local.json

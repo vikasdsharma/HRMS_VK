@@ -1,0 +1,29 @@
+{% extends "base.html" %}{% block title %}Holidays &amp; weekly off{% endblock %}{% block body %}
+{% from "_macros.html" import csrf %}
+<div class="page-head"><div><h1>Holidays &amp; weekly off</h1><p>Weekly offs and holidays are not counted as leave days, and are paid days in the attendance roll-up.</p></div></div>
+<div class="grid g2">
+<div class="card"><h2 style="margin-top:0">Holidays {{ year }}</h2>
+  <form method="get" class="row"><div><label for="y">Year</label><input id="y" type="number" name="year" value="{{ year }}" min="2000" max="2100" style="width:100px"></div><button class="btn secondary">Show</button></form>
+  <div class="tablewrap" style="margin-top:10px"><table><thead><tr><th>Date</th><th>Holiday</th><th></th></tr></thead><tbody>
+  {% for h in hols %}<tr><td class="nowrap">{{ h.on_date.strftime('%d %b %Y (%a)') }}</td><td>{{ h.name }}</td>
+  <td><form method="post" action="{{ url_for('leave_holiday_delete', hid=h.id) }}" class="inline" data-confirm="Remove {{ h.name }}?">{{ csrf() }}<button class="btn danger sm">Remove</button></form></td></tr>
+  {% else %}<tr><td colspan="3" class="empty">No holidays entered for {{ year }}.</td></tr>{% endfor %}</tbody></table></div>
+  <form method="post" class="row" style="margin-top:12px">{{ csrf() }}
+    <div><label for="hd">Date</label><input id="hd" type="date" name="on_date" required></div>
+    <div><label for="hn">Name</label><input id="hn" name="name" required maxlength="80" placeholder="e.g. Diwali" style="width:200px"></div>
+    <button class="btn">Add holiday</button></form></div>
+
+<div class="card"><h2 style="margin-top:0">Weekly off</h2>
+  {% set default_rule = rules|selectattr('category_id', 'none')|first %}
+  <form method="post" action="{{ url_for('leave_weekly_off') }}">{{ csrf() }}
+    <h3>Everyone (default)</h3>
+    <p>{% for d in range(7) %}<label class="check" style="margin-right:10px"><input type="checkbox" name="weekday" value="{{ d }}" {{ 'checked' if default_rule and d|string in default_rule.weekdays.split(',') }}> {{ weekdays[d] }}</label>{% endfor %}</p>
+    <button class="btn">Save default</button></form>
+  {% for c in cats %}{% set cr = rules|selectattr('category_id', 'equalto', c.id)|first %}
+  <form method="post" action="{{ url_for('leave_weekly_off') }}" style="margin-top:14px">{{ csrf() }}<input type="hidden" name="category_id" value="{{ c.id }}">
+    <h3>{{ c.name }} {% if not cr %}<span class="hint">(follows the default)</span>{% endif %}</h3>
+    <p>{% for d in range(7) %}<label class="check" style="margin-right:10px"><input type="checkbox" name="weekday" value="{{ d }}" {{ 'checked' if cr and d|string in cr.weekdays.split(',') }}> {{ weekdays[d] }}</label>{% endfor %}</p>
+    <button class="btn secondary sm">Save for {{ c.name }}</button> <span class="hint">untick everything and save to follow the default again</span></form>
+  {% endfor %}</div>
+</div>
+{% endblock %}

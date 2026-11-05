@@ -1,0 +1,27 @@
+{% extends "base.html" %}{% block title %}Policy &middot; {{ pol.name }}{% endblock %}{% block body %}
+{% from "_macros.html" import csrf %}
+<div class="page-head"><div><h1>Policy: {{ pol.name }}</h1><p>{{ 'Default policy' if pol.is_default else 'Tied to one salary category' }}. Changes affect credits created from now on; existing ledger entries are never rewritten.</p></div><span class="sp"></span>
+  <a class="btn secondary" href="{{ url_for('leave_policies') }}">Back</a></div>
+<form method="post" data-dirty-warn>{{ csrf() }}
+<div class="card"><div class="form"><div class="field"><label for="pn">Policy name</label><input id="pn" name="name" value="{{ pol.name }}" maxlength="60" required></div></div>
+{% if not pol.is_default %}<p style="margin-bottom:0"><label class="check"><input type="checkbox" name="is_default"> Make this the default policy (covers everyone without a category policy)</label></p>{% endif %}</div>
+
+{% for t in types %}{% set r = rules.get(t.id) %}
+<div class="card"><h3><label class="check"><input type="checkbox" name="r{{ t.id }}_use" {{ 'checked' if r }}> <b>{{ t.name }}</b> <span class="muted">({{ t.code }})</span></label></h3>
+<div class="form">
+  <div class="field"><label for="q{{ t.id }}">Days per year</label><input id="q{{ t.id }}" type="number" name="r{{ t.id }}_quota" min="0" max="366" step="0.5" value="{{ '%g' % r.quota if r else 0 }}"></div>
+  <div class="field"><label for="a{{ t.id }}">How it is credited</label><select id="a{{ t.id }}" name="r{{ t.id }}_accrual">{% for k, label in accruals %}<option value="{{ k }}" {{ 'selected' if r and r.accrual == k }}>{{ label }}</option>{% endfor %}</select></div>
+  <div class="field"><label for="ad{{ t.id }}">N, for "1 day per N days worked"</label><input id="ad{{ t.id }}" type="number" name="r{{ t.id }}_accrual_days" min="1" max="366" step="1" value="{{ '%g' % r.accrual_days if r else 20 }}"></div>
+  <div class="field"><label for="w{{ t.id }}">Starts after (months from joining)</label><input id="w{{ t.id }}" type="number" name="r{{ t.id }}_wait_months" min="0" max="60" value="{{ r.wait_months if r else 0 }}"></div>
+  <div class="field"><label for="c{{ t.id }}">Carry forward at year end</label><select id="c{{ t.id }}" name="r{{ t.id }}_carry_mode">{% for k, label in carry %}<option value="{{ k }}" {{ 'selected' if r and r.carry_mode == k }}>{{ label }}</option>{% endfor %}</select></div>
+  <div class="field"><label for="cl{{ t.id }}">Carry-forward limit (days)</label><input id="cl{{ t.id }}" type="number" name="r{{ t.id }}_carry_limit" min="0" max="366" step="0.5" value="{{ '%g' % r.carry_limit if r else 0 }}"></div>
+  <div class="field"><label for="m{{ t.id }}">Ceiling: most days anyone may hold <span class="hint">empty = no ceiling</span></label><input id="m{{ t.id }}" type="number" name="r{{ t.id }}_max_balance" min="0" max="1000" step="0.5" value="{{ '%g' % r.max_balance if r and r.max_balance is not none else '' }}"></div>
+  <div class="field"><label for="x{{ t.id }}">Credit expires after (days) <span class="hint">for comp off</span></label><input id="x{{ t.id }}" type="number" name="r{{ t.id }}_expires_days" min="1" value="{{ r.expires_days or '' if r else '' }}"></div>
+</div>
+<p style="margin-bottom:0"><label class="check"><input type="checkbox" name="r{{ t.id }}_prorate" {{ 'checked' if not r or r.prorate }}> Prorate the first part-year / part-month after joining</label> &nbsp;
+<label class="check"><input type="checkbox" name="r{{ t.id }}_allow_negative" {{ 'checked' if r and r.allow_negative }}> Allow the balance to go negative</label></p></div>
+{% endfor %}
+<p><button class="btn">Save policy</button> <a class="btn secondary" href="{{ url_for('leave_policies') }}">Cancel</a></p>
+</form>
+<p class="muted" style="font-size:12.5px"><b>Yearly grant</b>: the full quota on the first day of the leave year (or when the employee joins, prorated). <b>Monthly</b>: quota/12 on the 1st of each month. <b>Per days worked</b>: credited when a payroll month is finalised, from the days actually worked. <b>Manual</b>: only by an admin (comp off).</p>
+{% endblock %}

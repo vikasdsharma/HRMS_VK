@@ -1,20 +1,30 @@
-{% extends "base.html" %}{% block body %}
-<h1>Settings</h1>
-<form method="post" class="card"><div class="form">
-  <div><label>Company name</label><input name="company_name" value="{{ S.company_name }}"></div>
-  <div><label>Address</label><input name="company_address" value="{{ S.company_address }}"></div>
-  <div><label>PF establishment code</label><input name="pf_code" value="{{ S.pf_code }}"></div>
-  <div><label>ESI employer code</label><input name="esi_code" value="{{ S.esi_code }}"></div>
+{% extends "base.html" %}{% block title %}Settings{% endblock %}{% block body %}
+{% from "_macros.html" import csrf %}
+{% macro f(name, label, hint='') %}<div class="field"><label for="s_{{ name }}">{{ label }}{% if hint %} <span class="hint">{{ hint }}</span>{% endif %}</label><input id="s_{{ name }}" name="{{ name }}" value="{{ S[name] }}"></div>{% endmacro %}
+<div class="page-head"><div><h1>Settings</h1><p>{{ org.name }}. Every change is recorded in the audit log.</p></div></div>
+<form method="post" class="card" data-dirty-warn>{{ csrf() }}
+<h2 style="margin-top:0">Company</h2>
+<div class="form">{{ f('company_name', 'Company name') }}{{ f('company_address', 'Address') }}{{ f('pf_code', 'PF establishment code') }}{{ f('esi_code', 'ESI employer code') }}</div>
+<h2>Statutory rates &amp; ceilings <span class="hint">change only when the law changes</span></h2>
+<div class="form">
+  {{ f('pf_wage_ceiling', 'PF wage ceiling', '₹') }}{{ f('esi_wage_ceiling', 'ESI wage ceiling', '₹') }}
+  {{ f('pf_ee_rate', 'PF employee %') }}{{ f('eps_rate', 'EPS employer %') }}{{ f('edli_rate', 'EDLI %') }}
+  {{ f('pf_admin_rate', 'PF admin charge %') }}{{ f('pf_admin_min', 'PF admin minimum', '₹') }}
+  {{ f('esi_ee_rate', 'ESI employee %') }}{{ f('esi_er_rate', 'ESI employer %') }}
 </div>
-<h2>Statutory rates (change only when law changes)</h2><div class="form">
-  <div><label>PF wage ceiling (Rs)</label><input name="pf_wage_ceiling" value="{{ S.pf_wage_ceiling }}"></div>
-  <div><label>ESI wage ceiling (Rs)</label><input name="esi_wage_ceiling" value="{{ S.esi_wage_ceiling }}"></div>
-  <div><label>PF employee % </label><input name="pf_ee_rate" value="{{ S.pf_ee_rate }}"></div>
-  <div><label>EPS employer %</label><input name="eps_rate" value="{{ S.eps_rate }}"></div>
-  <div><label>EDLI %</label><input name="edli_rate" value="{{ S.edli_rate }}"></div>
-  <div><label>PF admin charge %</label><input name="pf_admin_rate" value="{{ S.pf_admin_rate }}"></div>
-  <div><label>PF admin minimum (Rs)</label><input name="pf_admin_min" value="{{ S.pf_admin_min }}"></div>
-  <div><label>ESI employee %</label><input name="esi_ee_rate" value="{{ S.esi_ee_rate }}"></div>
-  <div><label>ESI employer %</label><input name="esi_er_rate" value="{{ S.esi_er_rate }}"></div>
-</div><p><button class="btn">Save</button></p></form>
+<h2>Bonus &amp; gratuity worksheets</h2>
+<div class="form">
+  {{ f('bonus_rate', 'Bonus %', 'between 8.33 and 20') }}{{ f('bonus_wage_ceiling', 'Bonus monthly wage ceiling', '₹') }}
+  {{ f('bonus_eligibility_ceiling', 'Bonus eligibility ceiling (monthly salary)', '₹') }}
+  {{ f('gratuity_cap', 'Gratuity cap', '₹') }}{{ f('gratuity_min_years', 'Gratuity minimum completed years') }}
+</div>
+<h2>Leave &amp; attendance rules</h2>
+<div class="form">
+  <div class="field"><label for="s_leave_year_start">Leave year starts in</label><select id="s_leave_year_start" name="leave_year_start"><option value="1" {{ 'selected' if S.leave_year_start == '1' }}>January (calendar year)</option><option value="4" {{ 'selected' if S.leave_year_start == '4' }}>April (financial year)</option></select></div>
+  <div class="field"><label for="s_leave_start_date">Leave managed from <span class="hint">YYYY-MM-DD; filled at the first accrual run</span></label><input id="s_leave_start_date" name="leave_start_date" value="{{ S.leave_start_date }}" placeholder="2026-01-01"></div>
+  <div class="field"><label for="s_leave_sandwich">Weekly offs / holidays between leave days</label><select id="s_leave_sandwich" name="leave_sandwich"><option value="0" {{ 'selected' if S.leave_sandwich != '1' }}>Not counted as leave</option><option value="1" {{ 'selected' if S.leave_sandwich == '1' }}>Counted as leave (sandwich rule)</option></select></div>
+  {{ f('leave_backdate_days', 'Employees may apply this many days back') }}{{ f('comp_off_expiry_days', 'Comp off valid for (days)') }}{{ f('attendance_request_days', 'Employees may ask for attendance corrections this many days back') }}
+</div>
+<p style="margin-bottom:0"><button class="btn">Save settings</button></p>
+</form>
 {% endblock %}

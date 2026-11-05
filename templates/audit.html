@@ -1,0 +1,14 @@
+{% extends "base.html" %}{% block title %}Audit log{% endblock %}{% block body %}
+<div class="page-head"><div><h1>Audit log</h1><p>{{ total }} event(s). Append-only: who did what, and when. It never stores Aadhaar, PAN or bank numbers.</p></div></div>
+<form method="get" class="toolbar">
+  <div><label for="action">Action starts with</label><input id="action" name="action" value="{{ action }}" placeholder="employee. or payroll." style="width:220px"></div>
+  <div><label for="user">User</label><input id="user" name="user" value="{{ who }}" style="width:160px"></div>
+  {% if me.role == 'superadmin' %}<div><label for="scope">Scope</label><select id="scope" name="scope" data-autosubmit><option value="org" {{ 'selected' if scope != 'all' }}>This organization</option><option value="all" {{ 'selected' if scope == 'all' }}>All organizations</option></select></div>{% endif %}
+  <button class="btn secondary">Filter</button></form>
+<div class="tablewrap"><table><thead><tr><th>When</th><th>User</th><th>Action</th><th>Item</th><th>Details</th><th>IP</th></tr></thead><tbody>
+{% for r in rows %}<tr><td class="nowrap">{{ r.at.strftime('%d-%b-%Y %H:%M:%S') }}</td><td>{{ r.username or '-' }}</td><td><code>{{ r.action }}</code></td><td>{{ r.entity or '' }} {{ r.entity_id or '' }}</td><td>{{ r.detail or '' }}</td><td class="nowrap">{{ r.ip or '' }}</td></tr>
+{% else %}<tr><td colspan="6" class="empty">Nothing recorded yet.</td></tr>{% endfor %}</tbody></table></div>
+<nav class="pager"><span>Page {{ page }} of {{ pages }}</span><span class="row">
+  {% if page > 1 %}<a class="btn secondary sm" href="{{ url_for('audit_log', page=page - 1, action=action, user=who, scope=scope) }}">&larr; Newer</a>{% endif %}
+  {% if page < pages %}<a class="btn secondary sm" href="{{ url_for('audit_log', page=page + 1, action=action, user=who, scope=scope) }}">Older &rarr;</a>{% endif %}</span></nav>
+{% endblock %}

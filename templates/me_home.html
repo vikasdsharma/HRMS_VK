@@ -1,0 +1,21 @@
+{% extends "base.html" %}{% block title %}My space{% endblock %}{% block body %}
+{% from "_macros.html" import csrf %}
+<div class="page-head"><div><h1>Welcome, {{ e.name.split()[0] }}</h1><p>{{ e.emp_code }}{% if e.designation %} &middot; {{ e.designation }}{% endif %} &middot; {{ org.name }}</p></div></div>
+
+{% if notes %}<div class="card"><h2 style="margin-top:0">Messages {% if unread %}<span class="badge warn">{{ unread }} new</span>{% endif %}</h2>
+  <ul style="margin:0;padding-left:18px">{% for n in notes %}<li {% if not n.read_at %}style="font-weight:600"{% endif %}>{{ n.text }} <small class="muted">{{ n.created_at.strftime('%d %b %H:%M') }}</small></li>{% endfor %}</ul>
+  {% if unread %}<form method="post" action="{{ url_for('me_notifications_read') }}" style="margin-top:8px">{{ csrf() }}<button class="btn secondary sm">Mark all as read</button></form>{% endif %}</div>{% endif %}
+
+<div class="stats">
+  {% for r in rows %}<div class="stat"><div class="l">{{ r.lt.name }}</div><div class="v">{{ '%g' % r.balance }}</div><div class="s">day(s) left{% if r.pending %} &middot; {{ '%g' % r.pending }} waiting for approval{% endif %}</div></div>{% endfor %}
+  {% if summary %}<div class="stat"><div class="l">This month</div><div class="v">{{ '%g' % (summary.present_days + summary.paid_holidays) }}</div><div class="s">paid day(s): {{ '%g' % summary.present_days }} worked, {{ '%g' % summary.paid_holidays }} off/leave</div></div>{% endif %}
+</div>
+
+<div class="row" style="margin-bottom:16px"><a class="btn" href="{{ url_for('me_leave') }}">Apply for leave</a><a class="btn secondary" href="{{ url_for('me_attendance') }}">See my attendance</a><a class="btn secondary" href="{{ url_for('me_payslips') }}">My payslips</a></div>
+
+<div class="card"><h2 style="margin-top:0">My latest leave requests</h2>
+  <div class="tablewrap"><table><thead><tr><th>Leave</th><th>Dates</th><th class="n">Days</th><th>Status</th></tr></thead><tbody>
+  {% for a in apps %}<tr><td>{{ a.leave_type.name }}</td><td class="nowrap">{{ a.from_date.strftime('%d %b') }}{% if a.to_date != a.from_date %} &ndash; {{ a.to_date.strftime('%d %b %Y') }}{% else %} {{ a.from_date.strftime('%Y') }}{% endif %}</td><td class="n">{{ '%g' % a.days }}</td>
+  <td><span class="badge {{ {'pending': 'warn', 'approved': 'ok', 'rejected': 'err', 'cancelled': ''}[a.status] }}">{{ a.status }}</span></td></tr>
+  {% else %}<tr><td colspan="4" class="empty">You have not applied for leave yet.</td></tr>{% endfor %}</tbody></table></div></div>
+{% endblock %}

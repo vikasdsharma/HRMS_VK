@@ -1,0 +1,13 @@
+{% extends "base.html" %}{% block title %}Gratuity estimate{% endblock %}{% block body %}
+<div class="page-head"><div><h1>Gratuity estimate &mdash; as on {{ data.as_on.strftime('%d %b %Y') }}</h1>
+  <p>15 days' wages per counted year of service (daily Basic + DA &times; 15 &times; years), eligible after {{ data.min_years }} completed years, capped at &#8377;{{ '{:,.0f}'.format(data.cap) }}. A leftover of more than 6 months counts as a full year.</p></div><span class="sp"></span>
+  <a class="btn secondary" href="{{ url_for('report_gratuity_xlsx', as_on=data.as_on.isoformat()) }}">Download Excel</a></div>
+<form method="get" class="toolbar"><div><label for="as_on">As on</label><input id="as_on" type="date" name="as_on" value="{{ data.as_on.isoformat() }}" data-autosubmit></div></form>
+<div class="stats"><div class="stat"><div class="l">Accrued gratuity</div><div class="v">&#8377;{{ '{:,}'.format(data.total) }}</div></div>
+  <div class="stat"><div class="l">Employees</div><div class="v">{{ data.rows|length }}</div><div class="s">{{ data.rows|selectattr('eligible')|list|length }} eligible</div></div></div>
+<div class="tablewrap"><table><thead><tr><th>Code</th><th>Name</th><th>Joined</th><th class="n">Completed yrs</th><th class="n">Counted yrs</th><th class="n">Daily wage</th><th class="n">Gratuity</th><th>Eligible</th><th>Note</th></tr></thead><tbody>
+{% for r in data.rows %}<tr><td>{{ r.code }}</td><td>{{ r.name }}</td><td class="nowrap">{{ r.doj.strftime('%d-%b-%Y') if r.doj else '-' }}</td><td class="n">{{ r.done }}</td><td class="n">{{ r.counted }}</td><td class="n">{{ '{:,.2f}'.format(r.daily) }}</td><td class="n"><b>{{ '{:,}'.format(r.amount) }}</b></td>
+<td><span class="badge {{ 'ok' if r.eligible else '' }}">{{ 'Yes' if r.eligible else 'No' }}</span></td><td class="muted">{{ r.note }}</td></tr>
+{% else %}<tr><td colspan="9" class="empty">No active employees.</td></tr>{% endfor %}</tbody></table></div>
+<p class="muted" style="font-size:12.5px">An estimate for provisioning, not a payment advice. Eligibility rules (for example for death, disablement or fixed-term staff) and the cap can change; confirm with your consultant.</p>
+{% endblock %}

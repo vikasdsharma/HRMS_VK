@@ -1,0 +1,26 @@
+{% extends "base.html" %}{% block title %}API access{% endblock %}{% block body %}
+{% from "_macros.html" import csrf %}
+<div class="page-head"><div><h1>API access</h1><p>Let another system (a biometric device, accounting software, a mobile app) read or write {{ org.name }}'s data. Not needed for normal use of the web app.</p></div></div>
+
+{% if new_token %}
+<div class="alert warn" role="alert"><div><b>Copy this token now &mdash; it is shown only once.</b><br>
+  Token for <b>{{ new_name }}</b>: <code style="word-break:break-all">{{ new_token }}</code><br>
+  <span class="hint">Send it as <code>Authorization: Bearer &lt;token&gt;</code>. Store it like a password.</span></div></div>
+{% endif %}
+
+<div class="card"><h2 style="margin-top:0">Create a token</h2>
+<form method="post" action="{{ url_for('api_token_new') }}" class="row">{{ csrf() }}
+  <div><label for="name">Name <span class="hint">what will use it</span></label><input id="name" name="name" required maxlength="60" style="width:260px" placeholder="e.g. Biometric gate device"></div>
+  <label class="check"><input type="checkbox" checked disabled> read</label>
+  <label class="check"><input type="checkbox" name="write"> write (create / update employees, attendance, payroll)</label>
+  <label class="check"><input type="checkbox" name="pii"> personal data (Aadhaar, PAN, bank account in responses)</label>
+  <button class="btn">Create token</button></form></div>
+
+<div class="tablewrap"><table><thead><tr><th>Name</th><th>Token starts with</th><th>Permissions</th><th>Created</th><th>Last used</th><th>Status</th><th></th></tr></thead><tbody>
+{% for t in rows %}<tr><td>{{ t.name }}</td><td><code>{{ t.prefix }}&hellip;</code></td><td>{{ t.scopes.replace(',', ', ') }}</td>
+<td class="nowrap">{{ t.created_at.strftime('%d-%b-%Y') }} by {{ t.created_by }}</td><td class="nowrap">{{ t.last_used_at.strftime('%d-%b-%Y %H:%M') if t.last_used_at else 'never' }}</td>
+<td><span class="badge {{ 'err' if t.revoked_at else 'ok' }}">{{ 'Revoked' if t.revoked_at else 'Active' }}</span></td>
+<td>{% if not t.revoked_at %}<form method="post" action="{{ url_for('api_token_revoke', tid=t.id) }}" class="inline" data-confirm="Revoke the token {{ t.name }}? Anything using it stops working immediately.">{{ csrf() }}<button class="btn danger sm">Revoke</button></form>{% endif %}</td></tr>
+{% else %}<tr><td colspan="7" class="empty">No tokens yet.</td></tr>{% endfor %}</tbody></table></div>
+<p class="muted" style="font-size:12.5px">API description: <a href="/api/v1/openapi.json">/api/v1/openapi.json</a>. Limit: 120 requests per minute per token. Every change made through the API is recorded in the audit log as <code>api:&lt;token name&gt;</code>.</p>
+{% endblock %}

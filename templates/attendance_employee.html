@@ -1,0 +1,74 @@
+{% extends "base.html" %}{% block title %}Attendance {{ year }} &middot; {{ e.name }}{% endblock %}{% block body %}
+{% from "_macros.html" import csrf %}
+{% set ep_name = 'attendance_employee' if admin_view else 'me_attendance' %}
+{% set base = {'eid': e.id} if admin_view else {} %}
+<div class="page-head"><div><h1>{{ 'Attendance' if admin_view else 'My attendance' }} &mdash; {{ year }}</h1>
+  <p>{{ e.name }} ({{ e.emp_code }}){% if e.doj %} &middot; calendar runs from the joining date, {{ e.doj.strftime('%d %b %Y') }}{% if e.dol %} to {{ e.dol.strftime('%d %b %Y') }}{% endif %}{% else %} &middot; <span class="badge err">no joining date</span>{% endif %}</p></div><span class="sp"></span>
+  <a class="btn secondary" href="{{ url_for(ep_name, **dict(base, year=year - 1)) }}">&larr; {{ year - 1 }}</a>
+  {% if year < today.year + 1 %}<a class="btn secondary" href="{{ url_for(ep_name, **dict(base, year=year + 1)) }}">{{ year + 1 }} &rarr;</a>{% endif %}
+  {% if admin_view %}<a class="btn secondary" href="{{ url_for('leave_employee', eid=e.id) }}">Leave &amp; balances</a>{% endif %}
+</div>
+
+<div class="stats">
+  {% for code in ['P','HD','A','L','U','WO','H'] %}{% if cal.summary.get(code) %}
+  <div class="stat"><div class="l">{{ statuses[code] }}</div><div class="v">{{ '%g' % cal.summary[code] }}</div><div class="s">day(s) in {{ year }}</div></div>{% endif %}{% endfor %}
+  {% for lt in lts if lt.uses_balance %}<div class="stat"><div class="l">{{ lt.name }} balance</div><div class="v">{{ '%g' % bal.get(lt.id, 0) }}</div></div>{% endfor %}
+</div>
+
+<div class="legend" aria-label="Legend">
+  <span class="d-P">P present</span><span class="d-HD">HD half day</span><span class="d-A">A absent</span><span class="d-L">L paid leave</span>
+  <span class="d-HL">HL half-day leave</span><span class="d-U">U unpaid leave</span><span class="d-WO">WO weekly off</span><span class="d-H">H holiday</span>
+</div>
+
+<div class="cal">
+{% for m in cal.months %}
+<div class="month"><h3>{{ m.name }} {{ year }}</h3>
+<table><thead><tr>{% for w in ['M','T','W','T','F','S','S'] %}<th>{{ w }}</th>{% endfor %}</tr></thead><tbody><tr>
+{% for _ in range(m.first_weekday) %}<td class="out"></td>{% endfor %}
+{% for c in m.days %}{% if not loop.first and (loop.index0 + m.first_weekday) % 7 == 0 %}</tr><tr>{% endif %}
+<td class="{{ 'out' if not c.in_service else ('d-' ~ c.code if c.code else '') }}{{ ' edit' if c.editable }}" title="{{ c.date.strftime('%d %b') }}{{ ' - ' ~ statuses.get(c.code, c.code) if c.code }}{{ ' (' ~ c.note ~ ')' if c.note }}">
+  {% if c.editable %}<a href="{{ url_for(ep_name, **dict(base, year=year, date=c.date.isoformat())) }}#mark"><span class="n">{{ c.date.day }}</span><span class="c">{{ c.code or '·' }}</span></a>
+  {% else %}<span class="n">{{ c.date.day }}</span><span class="c">{{ c.code if c.in_service else '' }}</span>{% endif %}</td>
+{% endfor %}</tr></tbody></table></div>
+{% endfor %}
+</div>
+<p class="muted" style="font-size:12.5px">Weekly offs and holidays show automatically. Days before the joining date{% if e.dol %} or after the leaving date{% endif %}, future days and days in a finalised payroll month cannot be changed. Days from approved leave are changed by cancelling the leave.</p>
+
+{% if admin_view %}
+<div class="grid g2" id="mark">
+  <div class="card"><h2>Mark one day</h2>
+    <form method="post">{{ csrf() }}<input type="hidden" name="action" value="day"><input type="hidden" name="year" value="{{ year }}">
+      <div class="form">
+        <div class="field"><label for="d">Date</label><input id="d" type="date" name="date" value="{{ request.args.get('date', today.isoformat()) }}" max="{{ today.isoformat() }}" required></div>
+        <div class="field"><label for="st">Status</label><select id="st" name="status"><option value="">(clear the mark)</option>{% for k in manual %}<option value="{{ k }}">{{ k }} &middot; {{ statuses[k] }}</option>{% endfor %}</select></div>
+        <div class="field"><label for="ot">Overtime hours</label><input id="ot" type="number" name="ot" min="0" max="16" step="0.5" value="0"></div>
+      </div><p style="margin-bottom:0"><button class="btn">Save day</button></p></form></div>
+  <div class="card"><h2>Mark a range</h2>
+    <form method="post">{{ csrf() }}<input type="hidden" name="action" value="range"><input type="hidden" name="year" value="{{ year }}">
+      <div class="form">
+        <div class="field"><label for="f">From</label><input id="f" type="date" name="from" max="{{ today.isoformat() }}" required></div>
+        <div class="field"><label for="t">To</label><input id="t" type="date" name="to" max="{{ today.isoformat() }}" required></div>
+        <div class="field"><label for="rs">Status</label><select id="rs" name="status">{% for k in manual %}<option value="{{ k }}">{{ k }} &middot; {{ statuses[k] }}</option>{% endfor %}</select></div>
+      </div>
+      <p><label class="check"><input type="checkbox" name="include_offs"> Also mark weekly offs and holidays</label></p>
+      <p style="margin-bottom:0"><button class="btn" data-confirm="Mark every working day in this range?">Mark range</button></p></form></div>
+</div>
+{% else %}
+<div class="grid g2" id="mark">
+  <div class="card"><h2>Ask for a correction</h2>
+    <p class="muted" style="margin-top:0">If a day is wrong or missing, tell HR what happened. They will approve or reject it and you will be notified.</p>
+    <form method="post">{{ csrf() }}<input type="hidden" name="year" value="{{ year }}">
+      <div class="form">
+        <div class="field"><label for="d">Date</label><input id="d" type="date" name="date" value="{{ request.args.get('date', '') }}" max="{{ today.isoformat() }}" required></div>
+        <div class="field"><label for="st">I was</label><select id="st" name="status"><option value="P">Present</option><option value="HD">Present for half a day</option></select></div>
+      </div>
+      <div class="field" style="margin-top:12px"><label for="why">What happened</label><input id="why" name="reason" maxlength="200" required placeholder="e.g. machine shift swapped, supervisor forgot to mark"></div>
+      <p style="margin-bottom:0"><button class="btn">Send request</button></p></form></div>
+  <div class="card"><h2>My requests</h2>
+    <div class="tablewrap"><table><thead><tr><th>Date</th><th>Asked</th><th>Status</th></tr></thead><tbody>
+    {% for r in reqs %}<tr><td>{{ r.on_date.strftime('%d %b %Y') }}</td><td>{{ statuses.get(r.requested_status) }}</td>
+      <td><span class="badge {{ {'pending': 'warn', 'approved': 'ok', 'rejected': 'err'}[r.status] }}">{{ r.status }}</span>{% if r.decision_note %}<br><small class="muted">{{ r.decision_note }}</small>{% endif %}</td></tr>
+    {% else %}<tr><td colspan="3" class="empty">No requests yet.</td></tr>{% endfor %}</tbody></table></div></div>
+</div>
+{% endif %}
+{% endblock %}

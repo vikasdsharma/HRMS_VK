@@ -1,18 +1,33 @@
-{% extends "base.html" %}{% block body %}
-<h1>{{ 'Edit' if cat and cat.id else 'New' }} salary category</h1>
-<form method="post" class="card">
+{% extends "base.html" %}{% block title %}{{ 'Edit' if cat and cat.id else 'New' }} salary category{% endblock %}{% block body %}
+{% from "_macros.html" import csrf %}
+<div class="page-head"><div><h1>{{ 'Edit' if cat and cat.id else 'New' }} salary category</h1></div></div>
+<form method="post" class="card" data-dirty-warn>{{ csrf() }}
 <div class="form">
-  <div><label>Name *</label><input name="name" value="{{ cat.name if cat else '' }}" required></div>
-  <div><label>Description</label><input name="description" value="{{ (cat.description or '') if cat else '' }}"></div>
-  <div><label>Basic per day (Rs)</label><input name="basic_day" type="number" step="0.01" min="0" value="{{ cat.basic_day if cat else 0 }}"></div>
-  <div><label>Dearness allowance per day</label><input name="da_day" type="number" step="0.01" min="0" value="{{ cat.da_day if cat else 0 }}"></div>
-  <div><label>HRA per day</label><input name="hra_day" type="number" step="0.01" min="0" value="{{ cat.hra_day if cat else 0 }}"></div>
-  <div><label>Other allowance per day</label><input name="other_day" type="number" step="0.01" min="0" value="{{ cat.other_day if cat else 0 }}"></div>
-  <div><label>Overtime multiplier <small class="hint">2 = double rate</small></label><input name="ot_multiplier" type="number" step="0.1" min="1" value="{{ cat.ot_multiplier if cat else 2 }}"></div>
+  <div class="field"><label for="name">Name <span aria-hidden="true">*</span></label><input id="name" name="name" value="{{ cat.name if cat else '' }}" required></div>
+  <div class="field"><label for="description">Description</label><input id="description" name="description" value="{{ (cat.description or '') if cat else '' }}"></div>
 </div>
-<p><label style="display:inline"><input type="checkbox" name="pf_applicable" style="width:auto" {{ 'checked' if not cat or cat.pf_applicable }}> PF applicable</label> &nbsp;
-<label style="display:inline"><input type="checkbox" name="pf_ceiling" style="width:auto" {{ 'checked' if not cat or cat.pf_ceiling }}> Limit PF wages to ceiling (Rs {{ S.pf_wage_ceiling }})</label> &nbsp;
-<label style="display:inline"><input type="checkbox" name="esi_applicable" style="width:auto" {{ 'checked' if not cat or cat.esi_applicable }}> ESI applicable (if gross &le; Rs {{ S.esi_wage_ceiling }})</label></p>
-<p><button class="btn">Save</button> <a class="btn sec" href="{{ url_for('categories') }}">Cancel</a></p>
+<h2>Daily rates (&#8377; per paid day)</h2>
+<div class="form">
+  <div class="field"><label for="basic_day">Basic</label><input id="basic_day" name="basic_day" type="number" step="0.01" min="0" value="{{ cat.basic_day if cat else 0 }}"></div>
+  <div class="field"><label for="da_day">Dearness allowance</label><input id="da_day" name="da_day" type="number" step="0.01" min="0" value="{{ cat.da_day if cat else 0 }}"></div>
+  <div class="field"><label for="hra_day">HRA</label><input id="hra_day" name="hra_day" type="number" step="0.01" min="0" value="{{ cat.hra_day if cat else 0 }}"></div>
+  <div class="field"><label for="other_day">Other allowance</label><input id="other_day" name="other_day" type="number" step="0.01" min="0" value="{{ cat.other_day if cat else 0 }}"></div>
+  <div class="field"><label for="ot_multiplier">Overtime multiplier <span class="hint">2 = double rate</span></label><input id="ot_multiplier" name="ot_multiplier" type="number" step="0.1" min="1" max="10" value="{{ cat.ot_multiplier if cat else 2 }}"></div>
+  {% if cat and cat.id %}<div class="field"><label for="effective_from">Changed rates apply from</label>
+    <select id="effective_from" name="effective_from">{% for m in month_opts %}<option value="{{ m }}" {{ 'selected' if m == cur_month }}>{{ month_label(m) }}{% if m in finals %} (finalised){% endif %}</option>{% endfor %}</select>
+    <div class="help">Earlier months keep their old rates. Finalised months are never changed.</div></div>{% endif %}
+</div>
+<h2>Statutory</h2>
+<div class="form">
+  <div class="field"><label for="min_wage_day">Notified minimum wage per day <span class="hint">optional - used for warnings and the bonus ceiling</span></label><input id="min_wage_day" name="min_wage_day" type="number" step="0.01" min="0" value="{{ cat.min_wage_day or '' if cat else '' }}"></div>
+</div>
+<p><label class="check"><input type="checkbox" name="pf_applicable" {{ 'checked' if not cat or cat.pf_applicable }}> PF applicable</label> &nbsp;
+<label class="check"><input type="checkbox" name="pf_ceiling" {{ 'checked' if not cat or cat.pf_ceiling }}> Limit PF wages to the ceiling (&#8377;{{ S.pf_wage_ceiling }})</label> &nbsp;
+<label class="check"><input type="checkbox" name="esi_applicable" {{ 'checked' if not cat or cat.esi_applicable }}> ESI applicable (gross up to &#8377;{{ S.esi_wage_ceiling }})</label></p>
+<p style="margin-bottom:0"><button class="btn">Save</button> <a class="btn secondary" href="{{ url_for('categories') }}">Cancel</a></p>
 </form>
+
+{% if rates %}<div class="card"><h2>Rate history</h2>
+  <div class="tablewrap"><table><thead><tr><th>Effective from</th><th class="n">Basic</th><th class="n">DA</th><th class="n">HRA</th><th class="n">Other</th><th class="n">Total / day</th><th>OT &times;</th></tr></thead><tbody>
+  {% for r in rates %}<tr><td>{{ 'Beginning' if r.effective_from == '2000-01' else month_label(r.effective_from) }}</td><td class="n">{{ r.basic_day }}</td><td class="n">{{ r.da_day }}</td><td class="n">{{ r.hra_day }}</td><td class="n">{{ r.other_day }}</td><td class="n"><b>{{ r.total_day|round(2) }}</b></td><td>{{ r.ot_multiplier }}</td></tr>{% endfor %}</tbody></table></div></div>{% endif %}
 {% endblock %}

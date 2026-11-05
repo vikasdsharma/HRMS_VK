@@ -1,9 +1,89 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{% block title %}HRMS{% endblock %} - {{ S.company_name }}</title><link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"></head><body>
-{% if session.uid %}<nav><span class="brand">HRMS &nbsp;</span>
-<a href="{{ url_for('dashboard') }}">Dashboard</a><a href="{{ url_for('employees') }}">Employees</a>
-<a href="{{ url_for('categories') }}">Salary Structures</a><a href="{{ url_for('attendance') }}">Attendance</a>
-<a href="{{ url_for('payroll_list') }}">Payroll</a><a href="{{ url_for('compliance_page') }}">EPF / ESI</a>
-<span class="sp"></span><a href="{{ url_for('settings') }}">Settings</a><a href="{{ url_for('change_password') }}">Password</a><a href="{{ url_for('logout') }}">Logout</a></nav>{% endif %}
-<main>{% with m = get_flashed_messages(with_categories=true) %}{% for c, t in m %}<div class="flash {{ c }}">{{ t }}</div>{% endfor %}{% endwith %}
-{% block body %}{% endblock %}</main></body></html>
+{% from "_macros.html" import csrf %}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block title %}HRMS{% endblock %}{% if org %} &middot; {{ org.name }}{% endif %}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+{% if me %}
+{% set ep = request.endpoint %}
+<div class="app">
+  <aside class="side" id="main-nav" aria-label="Main navigation">
+    <div class="brand">HRMS</div>
+    {% if me.role == 'employee' %}
+    <div class="grp">My space</div>
+    <a href="{{ url_for('me_home') }}" {{ 'aria-current=page' if ep == 'me_home' }}>Home{% if unread %} <span class="badge warn">{{ unread }}</span>{% endif %}</a>
+    <a href="{{ url_for('me_leave') }}" {{ 'aria-current=page' if ep == 'me_leave' }}>My leave</a>
+    <a href="{{ url_for('me_attendance') }}" {{ 'aria-current=page' if ep == 'me_attendance' }}>My attendance</a>
+    <a href="{{ url_for('me_payslips') }}" {{ 'aria-current=page' if ep == 'me_payslips' }}>My payslips</a>
+    {% elif org %}
+    <div class="grp">Overview</div>
+    <a href="{{ url_for('dashboard') }}" {{ 'aria-current=page' if ep == 'dashboard' }}>Dashboard</a>
+    <div class="grp">People</div>
+    <a href="{{ url_for('employees') }}" {{ 'aria-current=page' if ep in ('employees','employee_form','employee_detail') }}>Employees</a>
+    <a href="{{ url_for('employee_upload') }}" {{ 'aria-current=page' if ep == 'employee_upload' }}>Upload employees</a>
+    <div class="grp">Time</div>
+    <a href="{{ url_for('attendance') }}" {{ 'aria-current=page' if ep == 'attendance' }}>Monthly attendance</a>
+    <a href="{{ url_for('attendance_daily') }}" {{ 'aria-current=page' if ep in ('attendance_daily','attendance_daily_month') }}>Daily attendance</a>
+    {% if is_admin %}<div class="grp">Leave</div>
+    <a href="{{ url_for('leave_home') }}" {{ 'aria-current=page' if ep in ('leave_home','leave_employee') }}>Leave balances</a>
+    <a href="{{ url_for('leave_applications') }}" {{ 'aria-current=page' if ep == 'leave_applications' }}>Applications{% if badges.leave %} <span class="badge warn">{{ badges.leave }}</span>{% endif %}</a>
+    <a href="{{ url_for('attendance_requests') }}" {{ 'aria-current=page' if ep == 'attendance_requests' }}>Attendance requests{% if badges.requests %} <span class="badge warn">{{ badges.requests }}</span>{% endif %}</a>
+    <a href="{{ url_for('leave_policies') }}" {{ 'aria-current=page' if ep in ('leave_policies','leave_policy_edit') }}>Types &amp; policies</a>
+    <a href="{{ url_for('leave_holidays') }}" {{ 'aria-current=page' if ep == 'leave_holidays' }}>Holidays &amp; weekly off</a>
+    <a href="{{ url_for('leave_run') }}" {{ 'aria-current=page' if ep == 'leave_run' }}>Accrual &amp; year-end</a>
+    <a href="{{ url_for('leave_reports') }}" {{ 'aria-current=page' if ep == 'leave_reports' }}>Leave reports</a>{% endif %}
+    <div class="grp">Pay</div>
+    <a href="{{ url_for('categories') }}" {{ 'aria-current=page' if ep in ('categories','category_form') }}>Salary structures</a>
+    <a href="{{ url_for('payroll_list') }}" {{ 'aria-current=page' if ep == 'payroll_list' }}>Payroll</a>
+    <a href="{{ url_for('compliance_page') }}" {{ 'aria-current=page' if ep == 'compliance_page' }}>EPF / ESI</a>
+    {% if is_admin %}<a href="{{ url_for('reports_home') }}" {{ 'aria-current=page' if ep in ('reports_home','report_bonus','report_gratuity') }}>Bonus &amp; gratuity</a>
+    <div class="grp">Administration</div>
+    <a href="{{ url_for('users') }}" {{ 'aria-current=page' if ep in ('users','user_form') }}>Users</a>
+    <a href="{{ url_for('audit_log') }}" {{ 'aria-current=page' if ep == 'audit_log' }}>Audit log</a>
+    <a href="{{ url_for('portal_access') }}" {{ 'aria-current=page' if ep == 'portal_access' }}>Employee portal access</a>
+    <a href="{{ url_for('api_tokens') }}" {{ 'aria-current=page' if ep == 'api_tokens' }}>API access</a>
+    <a href="{{ url_for('settings') }}" {{ 'aria-current=page' if ep == 'settings' }}>Settings</a>{% endif %}
+    {% endif %}
+    {% if me.role == 'superadmin' %}<div class="grp">Platform</div>
+    <a href="{{ url_for('orgs') }}" {{ 'aria-current=page' if ep in ('orgs','org_new','org_edit') }}>Organizations</a>{% endif %}
+  </aside>
+  <div class="main">
+    <header class="top">
+      <button class="btn secondary sm menu-btn" id="nav-toggle" aria-expanded="false" aria-controls="main-nav" type="button">&#9776; Menu</button>
+      {% if me.role == 'superadmin' %}
+      <form method="post" id="orgsw" class="inline">{{ csrf() }}
+        <select data-org-switch aria-label="Switch organization">
+          <option value="">{{ 'Switch organization...' if org else '-- select an organization --' }}</option>
+          {% for o in all_orgs %}<option value="{{ o.id }}" {{ 'selected' if org and org.id == o.id }}>{{ o.name }}{{ '' if o.is_active else ' (inactive)' }}</option>{% endfor %}
+        </select></form>
+      {% elif org %}<span class="orgtag">{{ org.name }}</span>{% endif %}
+      <span class="sp"></span>
+      <span class="who">{{ me.username }} &middot; {{ {'superadmin': 'Platform admin', 'admin': 'Admin', 'user': 'User', 'employee': 'Employee'}[me.role] }}</span>
+      <a class="btn ghost sm" href="{{ url_for('change_password') }}">Password</a>
+      <form method="post" action="{{ url_for('logout') }}" class="inline">{{ csrf() }}<button class="btn secondary sm">Log out</button></form>
+    </header>
+    {% if me.role == 'superadmin' and org %}<div class="orgbar">Platform admin view &mdash; you are working inside <b>{{ org.name }}</b></div>{% endif %}
+    <main class="content" id="content">
+      <div aria-live="polite">
+      {% with m = get_flashed_messages(with_categories=true) %}{% for c, t in m %}
+        <div class="alert {{ 'err' if c == 'err' else 'ok' }}" role="{{ 'alert' if c == 'err' else 'status' }}"><span>{{ t }}</span><button class="x" type="button" aria-label="Dismiss">&times;</button></div>
+      {% endfor %}{% endwith %}
+      </div>
+      {% block body %}{% endblock %}
+    </main>
+  </div>
+</div>
+{% else %}
+<main id="content">
+  <div aria-live="polite">{% with m = get_flashed_messages(with_categories=true) %}{% for c, t in m %}
+    <div class="alert {{ 'err' if c == 'err' else 'ok' }}" role="alert" style="max-width:420px;margin:16px auto 0"><span>{{ t }}</span></div>{% endfor %}{% endwith %}</div>
+  {% block anon %}{{ self.body() }}{% endblock %}
+</main>
+{% endif %}
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+{% extends "base.html" %}{% block title %}My payslips{% endblock %}{% block body %}
+<div class="page-head"><div><h1>My payslips</h1><p>A payslip appears here after HR finalises that month's payroll.</p></div></div>
+<div class="tablewrap"><table><thead><tr><th>Month</th><th class="n">Paid days</th><th class="n">Gross</th><th class="n">Deductions</th><th class="n">Net pay</th><th></th></tr></thead><tbody>
+{% for s in slips %}<tr><td>{{ month_label(s.month) }}</td><td class="n">{{ '%g' % s.paid_days }}</td><td class="n">{{ s.gross }}</td><td class="n">{{ s.total_deduction|round(0)|int }}</td><td class="n"><b>{{ s.net }}</b></td>
+<td><a class="btn secondary sm" href="{{ url_for('me_payslip_pdf', sid=s.id) }}">Download PDF</a></td></tr>
+{% else %}<tr><td colspan="6" class="empty">No payslips available yet.</td></tr>{% endfor %}</tbody></table></div>
+{% endblock %}

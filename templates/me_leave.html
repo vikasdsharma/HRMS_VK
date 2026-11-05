@@ -1,0 +1,30 @@
+{% extends "base.html" %}{% block title %}My leave{% endblock %}{% block body %}
+{% from "_macros.html" import csrf %}
+<div class="page-head"><div><h1>My leave</h1><p>Apply for leave and follow your requests.</p></div></div>
+<div class="stats">{% for i in info %}<div class="stat"><div class="l">{{ i.lt.name }}</div><div class="v">{{ '%g' % i.balance }}</div><div class="s">available{% if i.pending %}: {{ '%g' % (i.balance - i.pending) }} after waiting requests{% endif %}</div></div>{% endfor %}</div>
+
+<div class="card"><h2 style="margin-top:0">Apply for leave</h2>
+  <form method="post">{{ csrf() }}
+    <div class="form">
+      <div class="field"><label for="t">Type of leave</label><select id="t" name="leave_type_id">{% for t in lts %}<option value="{{ t.id }}" {{ 'selected' if f.get('leave_type_id') == t.id|string }}>{{ t.name }}</option>{% endfor %}</select></div>
+      <div class="field"><label for="from">First day</label><input id="from" type="date" name="from_date" value="{{ f.get('from_date', '') }}" required></div>
+      <div class="field"><label for="to">Last day <span class="hint">leave empty for one day</span></label><input id="to" type="date" name="to_date" value="{{ f.get('to_date', '') }}"></div>
+    </div>
+    <p><label class="check"><input type="checkbox" name="from_half"> first day is only a half day</label> &nbsp; <label class="check"><input type="checkbox" name="to_half"> last day is only a half day</label> &nbsp;
+      <label class="check"><input type="checkbox" name="doc"> I have a medical certificate (for sick leave)</label></p>
+    <div class="field"><label for="why">Reason</label><input id="why" name="reason" maxlength="200" value="{{ f.get('reason', '') }}"></div>
+    <p style="margin-bottom:0"><button class="btn">Send for approval</button></p></form>
+  <p class="muted" style="font-size:12.5px;margin-bottom:0">Weekly offs and holidays are not counted as leave days. HR will approve or reject your request and you will be notified.</p></div>
+
+<h2>My requests</h2>
+<div class="tablewrap"><table><thead><tr><th>Leave</th><th>Dates</th><th class="n">Days</th><th>Status</th><th>Note</th><th></th></tr></thead><tbody>
+{% for a in apps %}<tr><td>{{ a.leave_type.name }}</td><td class="nowrap">{{ a.from_date.strftime('%d %b %Y') }}{% if a.to_date != a.from_date %} &ndash; {{ a.to_date.strftime('%d %b %Y') }}{% endif %}</td><td class="n">{{ '%g' % a.days }}</td>
+<td><span class="badge {{ {'pending': 'warn', 'approved': 'ok', 'rejected': 'err', 'cancelled': ''}[a.status] }}">{{ a.status }}</span></td><td>{{ a.decision_note or '' }}</td>
+<td>{% if a.status == 'pending' or (a.status == 'approved' and a.from_date > today) %}<form method="post" action="{{ url_for('me_leave_cancel', aid=a.id) }}" class="inline" data-confirm="Cancel this leave request?">{{ csrf() }}<button class="btn secondary sm">Cancel</button></form>{% endif %}</td></tr>
+{% else %}<tr><td colspan="6" class="empty">No requests yet.</td></tr>{% endfor %}</tbody></table></div>
+
+<h2>How my balance changed</h2>
+<div class="tablewrap"><table><thead><tr><th>Date</th><th>Leave</th><th class="n">Days</th><th>What</th></tr></thead><tbody>
+{% for r in ledger %}<tr><td class="nowrap">{{ r.on_date.strftime('%d %b %Y') }}</td><td>{{ r.leave_type.code }}</td><td class="n"><b>{{ '%+g' % r.days }}</b></td><td>{{ r.note or r.kind }}</td></tr>
+{% else %}<tr><td colspan="4" class="empty">Nothing yet.</td></tr>{% endfor %}</tbody></table></div>
+{% endblock %}

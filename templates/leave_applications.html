@@ -1,0 +1,18 @@
+{% extends "base.html" %}{% block title %}Leave applications{% endblock %}{% block body %}
+{% from "_macros.html" import csrf, pager %}
+<div class="page-head"><div><h1>Leave applications</h1><p>Approve or reject what employees and admins have applied for.</p></div></div>
+<form method="get" class="toolbar"><div><label for="s">Show</label><select id="s" name="status" data-autosubmit style="width:180px">
+  {% for s in ['pending','approved','rejected','cancelled','all'] %}<option {{ 'selected' if status == s }}>{{ s }}</option>{% endfor %}</select></div></form>
+<div class="tablewrap"><table><thead><tr><th>Employee</th><th>Type</th><th>Dates</th><th class="n">Days</th><th>Reason</th><th>Applied</th><th>Status</th><th></th></tr></thead><tbody>
+{% for a in p.items %}<tr><td><a href="{{ url_for('leave_employee', eid=a.emp_id) }}">{{ a.employee.name }}</a><br><small class="muted">{{ a.employee.emp_code }}</small></td>
+<td>{{ a.leave_type.name }}{% if a.leave_type.doc_after_days and a.doc_provided %}<br><small class="muted">certificate provided</small>{% endif %}</td>
+<td class="nowrap">{{ a.from_date.strftime('%d %b %Y') }}{% if a.to_date != a.from_date %} &ndash; {{ a.to_date.strftime('%d %b %Y') }}{% endif %}</td><td class="n">{{ '%g' % a.days }}</td><td>{{ a.reason or '' }}</td>
+<td class="nowrap">{{ a.applied_at.strftime('%d %b %H:%M') }}<br><small class="muted">{{ a.applied_by }}</small></td>
+<td><span class="badge {{ {'pending': 'warn', 'approved': 'ok', 'rejected': 'err', 'cancelled': ''}[a.status] }}">{{ a.status }}</span>{% if a.decided_by %}<br><small class="muted">{{ a.decided_by }}{% if a.decision_note %}: {{ a.decision_note }}{% endif %}</small>{% endif %}</td>
+<td>{% if a.status == 'pending' %}
+  <form method="post" action="{{ url_for('leave_decide', aid=a.id, action='approve') }}" class="row" style="gap:4px">{{ csrf() }}<input name="note" placeholder="note (optional)" maxlength="150" style="width:130px"><button class="btn sm">Approve</button></form>
+  <form method="post" action="{{ url_for('leave_decide', aid=a.id, action='reject') }}" class="row" style="gap:4px;margin-top:4px">{{ csrf() }}<input name="note" placeholder="reason" maxlength="150" style="width:130px"><button class="btn secondary sm">Reject</button></form>
+  {% elif a.status == 'approved' %}<form method="post" action="{{ url_for('leave_decide', aid=a.id, action='cancel') }}" class="inline" data-confirm="Cancel this approved leave? The days are given back.">{{ csrf() }}<button class="btn danger sm">Cancel</button></form>{% endif %}</td></tr>
+{% else %}<tr><td colspan="8" class="empty">Nothing {{ status if status != 'all' else '' }} to show.</td></tr>{% endfor %}</tbody></table></div>
+{{ pager(p, 'leave_applications', args) }}
+{% endblock %}
